@@ -148,12 +148,16 @@ public final class MethodPAG {
         } else {
             if( method.isConcrete() && !method.isPhantom() ) {
                 buildNormal();
+            }else{
+            	buildLibrary();
             }
         }
         addMiscEdges();
     }
 
-    protected VarNode parameterize( LocalVarNode vn, Context varNodeParameter ) {
+    
+
+	protected VarNode parameterize( LocalVarNode vn, Context varNodeParameter ) {
         SootMethod m = vn.getMethod();
         if( m != method && m != null ) throw new RuntimeException( "VarNode "+vn+" with method "+m+" parameterized in method "+method );
         //System.out.println( "parameterizing "+vn+" with "+varNodeParameter );
@@ -175,6 +179,9 @@ public final class MethodPAG {
     protected boolean hasBeenAdded = false;
     protected boolean hasBeenBuilt = false;
 
+    protected void buildLibrary() {
+		//TODO 在使用的时候LoadLibrary的Summary
+	}
     protected void buildNormal() {
         Body b = method.retrieveActiveBody();
         for (Unit u : b.getUnits())

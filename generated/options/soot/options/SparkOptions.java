@@ -769,6 +769,8 @@ public class SparkOptions
         
         throw new RuntimeException( "Invalid value "+s+" of phase option geom-worklist" );
     }
-    
+    public String getSourceMethod(){
+    	return soot.PhaseOptions.getString(options, "source-method");
+    }
 }
         

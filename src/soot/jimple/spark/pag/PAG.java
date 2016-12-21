@@ -83,6 +83,7 @@ import soot.util.queue.QueueReader;
  * @author Ondrej Lhotak
  */
 public class PAG implements PointsToAnalysis {
+	
     public PAG( final SparkOptions opts ) {
         this.opts = opts;
         this.cgOpts = new CGOptions( PhaseOptions.v().getPhaseOptions("cg") );
@@ -171,6 +172,13 @@ public class PAG implements PointsToAnalysis {
         runGeomPTA = opts.geom_pta();
     }
 
+    private String methodSig=null;
+	public void setSourceMethod(String methodSig){
+		this.methodSig=methodSig;
+	}
+	public String getSourceMethod(){
+		return methodSig;
+	}
 
     /** Returns the set of objects pointed to by variable l. */
     public PointsToSet reachingObjects( Local l ) {
@@ -789,7 +797,7 @@ public class PAG implements PointsToAnalysis {
     public ArrayNumberer<FieldRefNode> getFieldRefNodeNumberer() { return fieldRefNodeNumberer; }
     private final ArrayNumberer<AllocDotField> allocDotFieldNodeNumberer = new ArrayNumberer<AllocDotField>();
     public ArrayNumberer<AllocDotField> getAllocDotFieldNodeNumberer() { return allocDotFieldNodeNumberer; }
-
+    
 
     /** Returns SparkOptions for this graph. */
     public SparkOptions getOpts() { return opts; }
@@ -1113,6 +1121,7 @@ public class PAG implements PointsToAnalysis {
             thisRef = tgtmpag.parameterize( thisRef, tgtContext );
             thisRef = thisRef.getReplacement();
             addEdge( baseNode, thisRef );
+            //TODO
             Pair<Node, Node> pval = addInterproceduralAssignment(baseNode, thisRef, e);
 			callAssigns.put(ie, pval);
             callToMethod.put(ie, srcmpag.getMethod());

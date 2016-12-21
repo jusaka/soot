@@ -64,6 +64,10 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
         return getNode();
     }
     
+    public void handleSource(){
+    	//TODO 判断method是否为需要生成source的method
+    	
+    }
     /** Adds the edges required for this statement to the graph. */
     final public void handleStmt( Stmt s ) {
 	if( s.containsInvokeExpr() ) {
