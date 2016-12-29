@@ -101,9 +101,15 @@ public final class BitPointsToSet extends PointsToSetInternal {
         if( ret ) empty = false;
         return ret;
     }
-
+    
     private BitVector bits = null;
     private boolean empty = true;
     private PAG pag = null;
+    
+	@Override
+	public void clear() {
+		bits = new BitVector( pag.getAllocNodeNumberer().size() );
+	    empty = true;		
+	}
 }
 

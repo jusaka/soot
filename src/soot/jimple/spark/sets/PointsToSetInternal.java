@@ -64,6 +64,9 @@ public abstract class PointsToSetInternal implements PointsToSet, EqualsSupporti
     public abstract boolean forall( P2SetVisitor v );
     /** Adds n to this set, returns true if n was not already in this set. */
     public abstract boolean add( Node n );
+    
+    public abstract void clear();
+    
     /** Returns set of newly-added nodes since last call to flushNew. */
     public PointsToSetInternal getNewSet() { return this; }
     /** Returns set of nodes already present before last call to flushNew. */

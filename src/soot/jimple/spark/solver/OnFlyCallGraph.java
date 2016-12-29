@@ -18,11 +18,21 @@
  */
 
 package soot.jimple.spark.solver;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import soot.Context;
+import soot.Kind;
 import soot.Local;
 import soot.MethodOrMethodContext;
+import soot.RefType;
 import soot.Scene;
+import soot.SootMethod;
+import soot.Value;
+import soot.jimple.AssignStmt;
 import soot.jimple.spark.pag.AllocNode;
+import soot.jimple.spark.pag.FakeNode;
 import soot.jimple.spark.pag.MethodPAG;
 import soot.jimple.spark.pag.Node;
 import soot.jimple.spark.pag.PAG;
@@ -30,12 +40,17 @@ import soot.jimple.spark.pag.StringConstantNode;
 import soot.jimple.spark.pag.VarNode;
 import soot.jimple.spark.sets.P2SetVisitor;
 import soot.jimple.spark.sets.PointsToSetInternal;
+import soot.jimple.spark.summary.BaseObjectType;
+import soot.jimple.spark.summary.GapDefinition;
+import soot.jimple.spark.summary.MethodObjects;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.CallGraphBuilder;
 import soot.jimple.toolkits.callgraph.ContextManager;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.OnFlyCallGraphBuilder;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
+import soot.jimple.toolkits.callgraph.VirtualCallSite;
+import soot.toolkits.scalar.Pair;
 import soot.util.queue.QueueReader;
 
 
@@ -98,11 +113,26 @@ public class OnFlyCallGraph {
 
         PointsToSetInternal p2set = vn.getP2Set().getNewSet();
         if( ofcgb.wantTypes( receiver ) ) {
+        	final boolean[] visit=new boolean[1];
             p2set.forall( new P2SetVisitor() {
             public final void visit( Node n ) { 
-                ofcgb.addType( receiver, context, n.getType(), (AllocNode) n );
+            	if(n instanceof FakeNode){
+            		visit[0]=true;
+            	}
             }} );
+            if(visit[0]){
+        		List<VirtualCallSite> virtualCallSites=ofcgb.getVirtualCallSites(receiver);
+        		for(VirtualCallSite virtualCallSite:virtualCallSites){
+        			handleGapCall(virtualCallSite,vn);
+        		}
+            }else{
+                p2set.forall( new P2SetVisitor() {
+                public final void visit( Node n ) { 
+                    ofcgb.addType( receiver, context, n.getType(), (AllocNode) n );
+                }} );
+            }
         }
+        
         if( ofcgb.wantStringConstants( receiver ) ) {
             p2set.forall( new P2SetVisitor() {
             public final void visit( Node n ) {
@@ -115,7 +145,57 @@ public class OnFlyCallGraph {
             }} );
         }
     }
-
+    private void handleGapCall(VirtualCallSite site,VarNode baseNode){
+    	MethodObjects methodObjects=pag.methodObjects;
+    	GapDefinition gapDefinition;
+    	if(!gaps.containsKey(site)){
+    		SootMethod method=site.iie().getMethod();
+        	if(!method.isNative()&&site.kind()==Kind.VIRTUAL){
+        		gapDefinition=methodObjects.getOrCreateGap(lastGapId++, method.getSignature());
+        		gaps.put(site, gapDefinition);
+        	}else{
+        		if(!site.iie().getMethod().isNative()){
+        			System.out.println(site.kind());
+        		}
+        		return;
+        	}
+    	}else{
+    		gapDefinition=gaps.get(site);
+    	}
+    	Local base=(Local)site.iie().getBase();
+    	Pair<BaseObjectType,GapDefinition> basePair=new Pair<BaseObjectType,GapDefinition>(BaseObjectType.GapBaseObject,gapDefinition);
+    	handleGapCall(site,baseNode,basePair,base);
+    	
+    	for(int i=0;i<site.iie().getArgCount();i++){
+    		Value arg=site.iie().getArg(i);
+    		if(arg.getType() instanceof RefType){
+    			Pair<GapDefinition,Integer> gapIndex=new Pair<GapDefinition,Integer>(gapDefinition,i);
+    			Pair<BaseObjectType,Pair<GapDefinition,Integer>> argPair
+        		=new Pair<BaseObjectType,Pair<GapDefinition,Integer>>(BaseObjectType.GapParameter,gapIndex);
+    			VarNode argNode=pag.makeLocalVarNode( (Local) arg,  arg.getType(), site.container() );
+    			handleGapCall(site,argNode,argPair,arg);
+    		}
+    	}
+    	if(site.stmt() instanceof AssignStmt){
+    		AssignStmt as=(AssignStmt) site.stmt();
+    		if(as.getLeftOp().getType() instanceof RefType){
+    			Local ret=(Local) as.getLeftOp();
+    			Pair<BaseObjectType,GapDefinition> returnPair=new Pair<BaseObjectType,GapDefinition>(BaseObjectType.GapReturn,gapDefinition);
+    			FakeNode fakeNode=pag.makeFakeNode(pag, returnPair,site.iie().getType(), site.container());
+            	VarNode retNode=pag.makeLocalVarNode(ret,ret.getType(), site.container());
+            	retNode.getP2Set().getNewSet().add(fakeNode);
+    		}
+    	}
+    }
+    
+    private void handleGapCall(VirtualCallSite site,VarNode node,Pair pair,Value value){
+    	PointsToSetInternal set=node.getP2Set().getNewSet();
+    	FakeNode fakeNode=pag.makeFakeNode(pag, pair,value.getType(), site.container());
+    	pag.methodObjects.addSummary(fakeNode, set, pag);
+    	set.clear();
+    	set.add(fakeNode);
+    }
+    
     /** Node uses this to notify PAG that n2 has been merged into n1. */
     public void mergedWith( Node n1, Node n2 ) {
     }
@@ -124,6 +204,9 @@ public class OnFlyCallGraph {
     /* End of package methods. */
 
     private PAG pag;
+    private static int lastGapId=0;
+    private Map<VirtualCallSite,GapDefinition> gaps=new HashMap<VirtualCallSite,GapDefinition>();
+    
 }
 
 

@@ -22,6 +22,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -67,7 +68,10 @@ import soot.jimple.StaticInvokeExpr;
 import soot.jimple.Stmt;
 import soot.jimple.StringConstant;
 import soot.jimple.VirtualInvokeExpr;
+import soot.jimple.spark.pag.FakeNode;
 import soot.jimple.spark.pag.PAG;
+import soot.jimple.spark.summary.GapDefinition;
+import soot.jimple.spark.summary.MethodObjects;
 import soot.jimple.toolkits.reflection.ReflectionTraceInfo;
 import soot.options.CGOptions;
 import soot.options.Options;
@@ -387,8 +391,7 @@ public final class OnFlyCallGraphBuilder
 
     private final ChunkedQueue<SootMethod> targetsQueue = new ChunkedQueue<SootMethod>();
     private final QueueReader<SootMethod> targets = targetsQueue.reader();
-
-
+    
     public OnFlyCallGraphBuilder( ContextManager cm, ReachableMethods rm ) {
         this.cm = cm;
         this.rm = rm;
@@ -427,7 +430,7 @@ public final class OnFlyCallGraphBuilder
     public void addType( Local receiver, Context srcContext, Type type, Context typeContext ) {
         FastHierarchy fh = Scene.v().getOrMakeFastHierarchy();
         for( Iterator<VirtualCallSite> siteIt = receiverToSites.get( receiver ).iterator(); siteIt.hasNext(); ) {
-            final VirtualCallSite site = siteIt.next();
+        	final VirtualCallSite site = siteIt.next();
             if( site.kind() == Kind.THREAD && !fh.canStoreType( type, clRunnable))
                 continue;
             if( site.kind() == Kind.EXECUTOR && !fh.canStoreType( type, clRunnable))
@@ -467,6 +470,10 @@ public final class OnFlyCallGraphBuilder
             }
         }
     }
+    public List<VirtualCallSite> getVirtualCallSites(Local receiver){
+    	return receiverToSites.get( receiver );
+    }
+    
     public boolean wantStringConstants( Local stringConst ) {
         return stringConstToSites.get(stringConst) != null;
     }

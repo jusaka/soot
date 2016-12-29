@@ -65,7 +65,12 @@ import soot.jimple.spark.sets.SharedHybridSet;
 import soot.jimple.spark.sets.SharedListSet;
 import soot.jimple.spark.sets.SortedArraySet;
 import soot.jimple.spark.solver.OnFlyCallGraph;
+import soot.jimple.spark.summary.BaseObject;
+import soot.jimple.spark.summary.BaseObjectType;
+import soot.jimple.spark.summary.GapDefinition;
+import soot.jimple.spark.summary.MethodObjects;
 import soot.jimple.toolkits.callgraph.Edge;
+import soot.jimple.toolkits.callgraph.VirtualCallSite;
 import soot.jimple.toolkits.pointer.util.NativeMethodDriver;
 import soot.options.CGOptions;
 import soot.options.SparkOptions;
@@ -171,14 +176,6 @@ public class PAG implements PointsToAnalysis {
         }
         runGeomPTA = opts.geom_pta();
     }
-
-    private String methodSig=null;
-	public void setSourceMethod(String methodSig){
-		this.methodSig=methodSig;
-	}
-	public String getSourceMethod(){
-		return methodSig;
-	}
 
     /** Returns the set of objects pointed to by variable l. */
     public PointsToSet reachingObjects( Local l ) {
@@ -492,7 +489,20 @@ public class PAG implements PointsToAnalysis {
     	}
     	return ret;
     }
-    
+    public FakeNode makeFakeNode(PAG pag,Pair pair,Type type,SootMethod m){
+		FakeNode fakeNode=valToFakeNode.get(pair);
+		if(fakeNode==null){
+			fakeNode=new FakeNode(pag,pair,type,m);
+			pag.valToFakeNode.put(pair, fakeNode);
+			BaseObject baseObject=methodObjects.getOrCreatepBaseObject(lastBaseObjectId++, type.toString(), (BaseObjectType)pair.getO1());
+			baseObjects.put(fakeNode, baseObject);
+		}
+		return fakeNode;
+	}
+    public Map<FakeNode,BaseObject> baseObjects=new HashMap<FakeNode,BaseObject>();
+	private int lastBaseObjectId=0;
+	public MethodObjects methodObjects=new MethodObjects();
+	
     public AllocNode makeStringConstantNode( String s ) {
         if( opts.types_for_sites() || opts.vta() )
             return makeAllocNode( RefType.v( "java.lang.String" ),
@@ -520,7 +530,8 @@ public class PAG implements PointsToAnalysis {
 
     ChunkedQueue<AllocNode> newAllocNodes = new ChunkedQueue<AllocNode>();
     public QueueReader<AllocNode> allocNodeListener() { return newAllocNodes.reader(); }
-
+    
+    
     /** Finds the GlobalVarNode for the variable value, or returns null. */
     public GlobalVarNode findGlobalVarNode( Object value ) {
         if( opts.rta() ) {
@@ -797,8 +808,6 @@ public class PAG implements PointsToAnalysis {
     public ArrayNumberer<FieldRefNode> getFieldRefNodeNumberer() { return fieldRefNodeNumberer; }
     private final ArrayNumberer<AllocDotField> allocDotFieldNodeNumberer = new ArrayNumberer<AllocDotField>();
     public ArrayNumberer<AllocDotField> getAllocDotFieldNodeNumberer() { return allocDotFieldNodeNumberer; }
-    
-
     /** Returns SparkOptions for this graph. */
     public SparkOptions getOpts() { return opts; }
     
@@ -1116,7 +1125,6 @@ public class PAG implements PointsToAnalysis {
             Node baseNode = srcnf.getNode( iie.getBase() );
             baseNode = srcmpag.parameterize( baseNode, srcContext );
             baseNode = baseNode.getReplacement();
-
             Node thisRef = tgtnf.caseThis();
             thisRef = tgtmpag.parameterize( thisRef, tgtContext );
             thisRef = thisRef.getReplacement();
@@ -1201,6 +1209,8 @@ public class PAG implements PointsToAnalysis {
     private final Map<Object, LocalVarNode> valToLocalVarNode = new HashMap<Object, LocalVarNode>(1000);
     private final Map<Object, GlobalVarNode> valToGlobalVarNode = new HashMap<Object, GlobalVarNode>(1000);
     private final Map<Object, AllocNode> valToAllocNode = new HashMap<Object, AllocNode>(1000);
+    public final Map<Object, FakeNode> valToFakeNode=new HashMap<Object,FakeNode>(1000);
+    
     private OnFlyCallGraph ofcg;
     private final ArrayList<VarNode> dereferences = new ArrayList<VarNode>();
     protected TypeManager typeManager;

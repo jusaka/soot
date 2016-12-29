@@ -201,6 +201,12 @@ public final class HybridPointsToSet extends PointsToSetInternal {
     }
     return ret;
 }
+	@Override
+	public void clear() {
+	    nodes = new Node[16];
+	    bits = null;
+	    empty = true;
+	}
 
 }
 

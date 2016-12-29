@@ -80,5 +80,9 @@ public final class HashPointsToSet extends PointsToSetInternal {
 
     private final HashSet<Node> s = new HashSet<Node>(4);
     private PAG pag = null;
+	@Override
+	public void clear() {
+		this.s.clear();
+	}
 }
 

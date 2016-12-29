@@ -161,5 +161,11 @@ public final class SortedArraySet extends PointsToSetInternal {
     private Node[] nodes = null;
     private int size = 0;
     private PAG pag = null;
+	@Override
+	public void clear() {
+		// TODO Auto-generated method stub
+	    nodes = null;
+	    size = 0;
+	}
 }
 

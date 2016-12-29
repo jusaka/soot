@@ -71,6 +71,8 @@ public class EmptyPointsToSet extends PointsToSetInternal {
     public String toString() {
     	return "{}";
     }
+	@Override
+	public void clear() {}
 
 }
 

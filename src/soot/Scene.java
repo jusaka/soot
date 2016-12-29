@@ -1740,5 +1740,12 @@ public class Scene  //extends AbstractHost
     	}    	    	
     	return c;
     }
+    protected String sourceMethod=null;
+	public void setSourceMethod(String sourceMethod){
+		this.sourceMethod=sourceMethod;
+	}
+	public String getSourceMethod(){
+		return sourceMethod;
+	}
 }
 

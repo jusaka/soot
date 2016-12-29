@@ -539,4 +539,10 @@ public class SharedHybridSet extends PointsToSetInternal {
 
 	}
 
+	@Override
+	public void clear() {
+		bitVector = null; 
+		overflow = new OverflowList();
+	}
+
 }

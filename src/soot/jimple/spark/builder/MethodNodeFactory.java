@@ -21,6 +21,7 @@ package soot.jimple.spark.builder;
 import soot.jimple.spark.internal.ClientAccessibilityOracle;
 import soot.jimple.spark.internal.SparkLibraryHelper;
 import soot.jimple.spark.pag.*;
+import soot.jimple.spark.summary.BaseObjectType;
 import soot.jimple.*;
 import soot.*;
 import soot.toolkits.scalar.Pair;
@@ -64,10 +65,6 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
         return getNode();
     }
     
-    public void handleSource(){
-    	//TODO 判断method是否为需要生成source的method
-    	
-    }
     /** Adds the edges required for this statement to the graph. */
     final public void handleStmt( Stmt s ) {
 	if( s.containsInvokeExpr() ) {
@@ -162,7 +159,9 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
 	VarNode ret = pag.makeLocalVarNode(
 		    new Pair<SootMethod, String>( method, PointsToAnalysis.THIS_NODE ),
 		    method.getDeclaringClass().getType(), method );
+	
         ret.setInterProcTarget();
+        caseSourceNode(ret,new Pair<BaseObjectType,SootMethod>(BaseObjectType.This ,method),method.getDeclaringClass().getType());
         return ret;
     }
 
@@ -171,6 +170,7 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
                     new Pair<SootMethod, Integer>( method, new Integer( index ) ),
                     method.getParameterType( index ), method );
         ret.setInterProcTarget();
+        caseSourceNode(ret,new Pair<BaseObjectType,Integer>(BaseObjectType.Parameter,new Integer(index)),method.getParameterType( index ));
         return ret;
     }
 
@@ -325,6 +325,12 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
     @Override
     final public void caseNullConstant( NullConstant nr ) {
 	setResult( null );
+    }
+    final public void caseSourceNode(VarNode dest,Pair pair,Type type){
+    	if(method.getSignature().equals(Scene.v().getSourceMethod())&&type instanceof RefType){
+    		FakeNode src=pag.makeFakeNode(pag, pair,type, method);
+    		mpag.addInternalEdge( src, dest );
+    	}
     }
     
     @Override

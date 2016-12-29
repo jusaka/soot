@@ -71,6 +71,7 @@ public class DoublePointsToSet extends PointsToSetInternal {
         if( oldSet.contains( n ) ) return false;
         return newSet.add( n );
     }
+    
     /** Returns set of nodes already present before last call to flushNew. */
     public PointsToSetInternal getOldSet() { return oldSet; }
     /** Returns set of newly-added nodes since last call to flushNew. */
@@ -132,5 +133,11 @@ public class DoublePointsToSet extends PointsToSetInternal {
     private PAG pag;
     protected PointsToSetInternal newSet;
     protected PointsToSetInternal oldSet;
+
+	@Override
+	public void clear() {
+		newSet = G.v().newSetFactory.newSet( type, pag );
+        oldSet = G.v().oldSetFactory.newSet( type, pag );
+	}
 }
 

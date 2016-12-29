@@ -336,5 +336,10 @@ public class SharedListSet extends PointsToSetInternal
 	// vector and the mask for casting
 	
 	private ListNode data = null;
+
+	@Override
+	public void clear() {
+		data = null;
+	}
 	
 }
