@@ -57,6 +57,7 @@ import soot.jimple.spark.solver.PropWorklist;
 import soot.jimple.spark.solver.Propagator;
 import soot.jimple.spark.solver.SCCCollapser;
 import soot.jimple.toolkits.callgraph.CallGraphBuilder;
+import soot.options.Options;
 import soot.options.SparkOptions;
 import soot.tagkit.Host;
 import soot.tagkit.StringTag;
@@ -74,7 +75,7 @@ public class SparkTransformer extends SceneTransformer
     {
         SparkOptions opts = new SparkOptions( options );
         final String output_dir = SourceLocator.v().getOutputDir();
-
+        
         // Build pointer assignment graph
         ContextInsensitiveBuilder b = new ContextInsensitiveBuilder();
         if( opts.pre_jimplify() ) b.preJimplify();

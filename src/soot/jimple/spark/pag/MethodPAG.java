@@ -38,7 +38,9 @@ import soot.VoidType;
 import soot.jimple.Stmt;
 import soot.jimple.spark.builder.MethodNodeFactory;
 import soot.jimple.spark.internal.SparkLibraryHelper;
+import soot.jimple.spark.summary.ClassesObjects;
 import soot.options.CGOptions;
+import soot.options.Options;
 import soot.util.NumberedString;
 import soot.util.queue.ChunkedQueue;
 import soot.util.queue.QueueReader;
@@ -149,7 +151,11 @@ public final class MethodPAG {
             if( method.isConcrete() && !method.isPhantom() ) {
                 buildNormal();
             }else{
-            	buildLibrary();
+            	SootClass sc=method.getDeclaringClass();
+            	ClassesObjects classesObjects=Options.v().classes_objects();
+            	if(classesObjects.supportsClass(sc.getName())){
+            		buildLibrary(classesObjects);
+            	}
             }
         }
         addMiscEdges();
@@ -179,8 +185,9 @@ public final class MethodPAG {
     protected boolean hasBeenAdded = false;
     protected boolean hasBeenBuilt = false;
 
-    protected void buildLibrary() {
+    protected void buildLibrary(ClassesObjects classesObjects) {
 		//TODO 在使用的时候LoadLibrary的Summary
+    	
 	}
     protected void buildNormal() {
         Body b = method.retrieveActiveBody();

@@ -22,10 +22,12 @@ import soot.jimple.spark.internal.ClientAccessibilityOracle;
 import soot.jimple.spark.internal.SparkLibraryHelper;
 import soot.jimple.spark.pag.*;
 import soot.jimple.spark.summary.BaseObjectType;
+import soot.jimple.spark.summary.MethodObjects;
 import soot.jimple.*;
 import soot.*;
 import soot.toolkits.scalar.Pair;
 import soot.options.CGOptions;
+import soot.options.Options;
 import soot.shimple.*;
 
 /** Class implementing builder parameters (this decides
@@ -190,6 +192,7 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
                     Parm.v( method, PointsToAnalysis.RETURN_NODE ),
                     method.getReturnType(), method );
         ret.setInterProcSource();
+        caseSourceNode(ret,new Pair<BaseObjectType,SootMethod>(BaseObjectType.Return ,method),method.getReturnType());
         return ret;
     }
     final public Node caseArray( VarNode base ) {
@@ -327,9 +330,14 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
 	setResult( null );
     }
     final public void caseSourceNode(VarNode dest,Pair pair,Type type){
-    	if(method.getSignature().equals(Scene.v().getSourceMethod())&&type instanceof RefType){
+    	MethodObjects methodObjects=Options.v().method_objects();
+    	if(methodObjects!=null&&method.getSignature().equals(methodObjects.getMethodSig())&&type instanceof RefType&&!pag.varToFakeNode.containsKey(dest)){
+    		methodObjects.setMethod(method);
     		FakeNode src=pag.makeFakeNode(pag, pair,type, method);
-    		mpag.addInternalEdge( src, dest );
+    		if(!pag.varToFakeNode.containsKey(dest)){
+    			pag.varToFakeNode.put(dest, src);
+    			pag.needToAdd.add(dest);
+    		}
     	}
     }
     

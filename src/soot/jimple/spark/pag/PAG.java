@@ -66,13 +66,10 @@ import soot.jimple.spark.sets.SharedListSet;
 import soot.jimple.spark.sets.SortedArraySet;
 import soot.jimple.spark.solver.OnFlyCallGraph;
 import soot.jimple.spark.summary.BaseObject;
-import soot.jimple.spark.summary.BaseObjectType;
-import soot.jimple.spark.summary.GapDefinition;
-import soot.jimple.spark.summary.MethodObjects;
 import soot.jimple.toolkits.callgraph.Edge;
-import soot.jimple.toolkits.callgraph.VirtualCallSite;
 import soot.jimple.toolkits.pointer.util.NativeMethodDriver;
 import soot.options.CGOptions;
+import soot.options.Options;
 import soot.options.SparkOptions;
 import soot.tagkit.LinkTag;
 import soot.tagkit.StringTag;
@@ -494,14 +491,12 @@ public class PAG implements PointsToAnalysis {
 		if(fakeNode==null){
 			fakeNode=new FakeNode(pag,pair,type,m);
 			pag.valToFakeNode.put(pair, fakeNode);
-			BaseObject baseObject=methodObjects.getOrCreatepBaseObject(lastBaseObjectId++, type.toString(), (BaseObjectType)pair.getO1());
+			BaseObject baseObject=Options.v().method_objects().createBaseObject(fakeNode);
 			baseObjects.put(fakeNode, baseObject);
 		}
 		return fakeNode;
 	}
     public Map<FakeNode,BaseObject> baseObjects=new HashMap<FakeNode,BaseObject>();
-	private int lastBaseObjectId=0;
-	public MethodObjects methodObjects=new MethodObjects();
 	
     public AllocNode makeStringConstantNode( String s ) {
         if( opts.types_for_sites() || opts.vta() )
@@ -1210,6 +1205,8 @@ public class PAG implements PointsToAnalysis {
     private final Map<Object, GlobalVarNode> valToGlobalVarNode = new HashMap<Object, GlobalVarNode>(1000);
     private final Map<Object, AllocNode> valToAllocNode = new HashMap<Object, AllocNode>(1000);
     public final Map<Object, FakeNode> valToFakeNode=new HashMap<Object,FakeNode>(1000);
+    public final Map<VarNode,FakeNode> varToFakeNode=new HashMap<VarNode,FakeNode>(1000);
+    public Set<VarNode> needToAdd=new HashSet<VarNode>();
     
     private OnFlyCallGraph ofcg;
     private final ArrayList<VarNode> dereferences = new ArrayList<VarNode>();

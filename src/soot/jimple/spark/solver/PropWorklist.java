@@ -19,11 +19,30 @@
 
 package soot.jimple.spark.solver;
 
-import soot.jimple.spark.pag.*;
-import soot.jimple.spark.sets.*;
-import soot.*;
-import soot.util.queue.*;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Set;
+import java.util.TreeSet;
+
+import soot.G;
+import soot.RefType;
+import soot.Scene;
+import soot.jimple.spark.pag.AllocDotField;
+import soot.jimple.spark.pag.AllocNode;
+import soot.jimple.spark.pag.FakeBaseNode;
+import soot.jimple.spark.pag.FakeNode;
+import soot.jimple.spark.pag.FieldRefNode;
+import soot.jimple.spark.pag.Node;
+import soot.jimple.spark.pag.PAG;
+import soot.jimple.spark.pag.SparkField;
+import soot.jimple.spark.pag.VarNode;
+import soot.jimple.spark.sets.P2SetVisitor;
+import soot.jimple.spark.sets.PointsToSetInternal;
+import soot.jimple.spark.summary.BaseObjectType;
+import soot.options.Options;
+import soot.toolkits.scalar.Pair;
+import soot.util.queue.QueueReader;
 
 /**
  * Propagates points-to sets along pointer assignment graph using a worklist.
@@ -93,8 +112,14 @@ public final class PropWorklist extends Propagator {
 				nDotF.flushNew();
 			}
 		} while (!varNodeWorkList.isEmpty());
+		for(FakeNode node:pag.valToFakeNode.values()){
+			Options.v().method_objects().handleFields(node,pag);
+		}
+		if(Options.v().method_objects()!=null){
+			Options.v().method_objects().compact();
+		}
 	}
-
+	
 	/* End of public methods. */
 	/* End of package methods. */
 
@@ -124,15 +149,29 @@ public final class PropWorklist extends Propagator {
 			throw new RuntimeException("Got bad node " + src + " with rep "
 					+ src.getReplacement());
 
+		if (pag.varToFakeNode.containsKey(src)){
+			FakeNode node=pag.varToFakeNode.get(src);
+			Pair pair=(Pair)node.getNewExpr();
+			PointsToSetInternal p2Set=src.makeP2Set();
+			if(((BaseObjectType)pair.getO1())!=BaseObjectType.Return){
+				p2Set.clear();
+				p2Set.getNewSet().add(node);
+			}else{
+				Options.v().method_objects().addSummary(node, p2Set, pag);
+				p2Set.clear();
+			}
+		}
+		
 		final PointsToSetInternal newP2Set = src.getP2Set().getNewSet();
 		if (newP2Set.isEmpty())
 			return false;
-
+		
+		
 		if (ofcg != null) {
 			QueueReader<Node> addedEdges = pag.edgeReader();
 			ofcg.updatedNode(src);
 			ofcg.build();
-
+			Set<VarNode> added=new HashSet<VarNode>();
 			while (addedEdges.hasNext()) {
 				Node addedSrc = (Node) addedEdges.next();
 				Node addedTgt = (Node) addedEdges.next();
@@ -145,6 +184,7 @@ public final class PropWorklist extends Propagator {
 						if (edgeTgt.makeP2Set()
 								.addAll(edgeSrc.getP2Set(), null)) {
 							varNodeWorkList.add(edgeTgt);
+							added.add(edgeTgt);
 							if (edgeTgt == src)
 								flush = false;
 						}
@@ -154,11 +194,18 @@ public final class PropWorklist extends Propagator {
 					VarNode edgeTgt = (VarNode) addedTgt.getReplacement();
 					if (edgeTgt.makeP2Set().add(edgeSrc)) {
 						varNodeWorkList.add(edgeTgt);
+						added.add(edgeTgt);
 						if (edgeTgt == src)
 							flush = false;
 					}
 				}
 			}
+			for(VarNode varNode:pag.needToAdd){
+				if(!added.contains(varNode)){
+					varNodeWorkList.add(varNode);
+				}
+			}
+			pag.needToAdd.clear();
 		}
 
 		Node[] simpleTargets = pag.simpleLookup(src);
@@ -216,7 +263,7 @@ public final class PropWorklist extends Propagator {
 								Node node=nDotF.getReplacement();
 								if(n instanceof FakeNode&&field.getType() instanceof RefType){
 									FakeNode fakeNode=(FakeNode) n;
-									node.getP2Set().getNewSet().add(fakeNode.getFakeBaseNode(field));
+									node.makeP2Set().getNewSet().add(fakeNode.getFakeBaseNode(field));
 								}
 								Node[] pair = { node, element };
 								loadsToPropagate.add(pair);

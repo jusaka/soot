@@ -15,6 +15,9 @@ public class FakeNode extends AllocNode{
 	public FakeNode(PAG pag,Pair pair, Type t, SootMethod m){
 		super(pag, pair, t, m);
 	}
+	public String toString() {
+		return "FakeNode "+getNumber()+" "+((Pair)newExpr).getO1()+" "+((Pair)newExpr).getO2();
+	}
 	
 	public FakeBaseNode getFakeBaseNode(SparkField field){
 		FakeBaseNode baseNode=fieldNodes.get(field);

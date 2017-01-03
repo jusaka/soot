@@ -136,8 +136,8 @@ public class DoublePointsToSet extends PointsToSetInternal {
 
 	@Override
 	public void clear() {
-		newSet = G.v().newSetFactory.newSet( type, pag );
-        oldSet = G.v().oldSetFactory.newSet( type, pag );
+		newSet.clear(); 
+        oldSet.clear();
 	}
 }
 

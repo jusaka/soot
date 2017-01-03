@@ -24,6 +24,8 @@ package soot.options;
 import soot.*;
 import java.util.*;
 import soot.PackManager;
+import soot.jimple.spark.summary.ClassesObjects;
+import soot.jimple.spark.summary.MethodObjects;
 
 /** Soot command-line options parser.
  * @author Ondrej Lhotak
@@ -1534,7 +1536,14 @@ public class Options extends OptionsBase {
     public boolean ignore_resolution_errors() { return ignore_resolution_errors; }
     private boolean ignore_resolution_errors = false;
     public void set_ignore_resolution_errors( boolean setting ) { ignore_resolution_errors = setting; }
-  
+    
+    public MethodObjects method_objects() { return methodObjects; }
+    private MethodObjects methodObjects=null;
+    public void set_method_objects(MethodObjects methodObjects){this.methodObjects=methodObjects;}
+    
+    public ClassesObjects classes_objects() { return classesObjects; }
+    private ClassesObjects classesObjects=null;
+    public void set_classes_objects(ClassesObjects classesObjects){this.classesObjects=classesObjects;}
     public List<String> include() { 
         if( include == null )
             return java.util.Collections.emptyList();

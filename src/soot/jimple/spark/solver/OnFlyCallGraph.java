@@ -26,8 +26,10 @@ import soot.Context;
 import soot.Kind;
 import soot.Local;
 import soot.MethodOrMethodContext;
+import soot.RefLikeType;
 import soot.RefType;
 import soot.Scene;
+import soot.SootClass;
 import soot.SootMethod;
 import soot.Value;
 import soot.jimple.AssignStmt;
@@ -50,6 +52,7 @@ import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.OnFlyCallGraphBuilder;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.jimple.toolkits.callgraph.VirtualCallSite;
+import soot.options.Options;
 import soot.toolkits.scalar.Pair;
 import soot.util.queue.QueueReader;
 
@@ -123,7 +126,16 @@ public class OnFlyCallGraph {
             if(visit[0]){
         		List<VirtualCallSite> virtualCallSites=ofcgb.getVirtualCallSites(receiver);
         		for(VirtualCallSite virtualCallSite:virtualCallSites){
-        			handleGapCall(virtualCallSite,vn);
+        			SootMethod targetMethod=virtualCallSite.iie().getMethod();
+        			SootClass targetClass=targetMethod.getDeclaringClass();
+        			//TODO
+        			if(!(targetMethod.isPublic()||targetMethod.isProtected())
+        					||targetMethod.isFinal()||targetClass.isFinal()
+        					||(virtualCallSite.kind()==Kind.SPECIAL&&targetClass.isAbstract())){
+        				ofcgb.addType( receiver, context, targetMethod.getDeclaringClass().getType(), null );
+        			}else{
+        				handleGapCall(virtualCallSite,vn);
+        			}
         		}
             }else{
                 p2set.forall( new P2SetVisitor() {
@@ -146,12 +158,12 @@ public class OnFlyCallGraph {
         }
     }
     private void handleGapCall(VirtualCallSite site,VarNode baseNode){
-    	MethodObjects methodObjects=pag.methodObjects;
+    	MethodObjects methodObjects=Options.v().method_objects();
     	GapDefinition gapDefinition;
     	if(!gaps.containsKey(site)){
     		SootMethod method=site.iie().getMethod();
-        	if(!method.isNative()&&site.kind()==Kind.VIRTUAL){
-        		gapDefinition=methodObjects.getOrCreateGap(lastGapId++, method.getSignature());
+        	if(!method.isNative()&&(site.kind()==Kind.VIRTUAL||site.kind()==Kind.SPECIAL)){
+        		gapDefinition=methodObjects.createGap(method.getSignature());
         		gaps.put(site, gapDefinition);
         	}else{
         		if(!site.iie().getMethod().isNative()){
@@ -183,17 +195,20 @@ public class OnFlyCallGraph {
     			Pair<BaseObjectType,GapDefinition> returnPair=new Pair<BaseObjectType,GapDefinition>(BaseObjectType.GapReturn,gapDefinition);
     			FakeNode fakeNode=pag.makeFakeNode(pag, returnPair,site.iie().getType(), site.container());
             	VarNode retNode=pag.makeLocalVarNode(ret,ret.getType(), site.container());
-            	retNode.getP2Set().getNewSet().add(fakeNode);
+            	retNode.makeP2Set().getNewSet().add(fakeNode);
+            	pag.needToAdd.add(retNode);
     		}
     	}
     }
     
     private void handleGapCall(VirtualCallSite site,VarNode node,Pair pair,Value value){
-    	PointsToSetInternal set=node.getP2Set().getNewSet();
+    	PointsToSetInternal set=node.getP2Set();
     	FakeNode fakeNode=pag.makeFakeNode(pag, pair,value.getType(), site.container());
-    	pag.methodObjects.addSummary(fakeNode, set, pag);
-    	set.clear();
-    	set.add(fakeNode);
+    	if(Options.v().method_objects().addSummary(fakeNode, set, pag)){
+    		set.clear();
+    		set.add(fakeNode);
+        	pag.needToAdd.add(node);
+    	}
     }
     
     /** Node uses this to notify PAG that n2 has been merged into n1. */
@@ -204,7 +219,6 @@ public class OnFlyCallGraph {
     /* End of package methods. */
 
     private PAG pag;
-    private static int lastGapId=0;
     private Map<VirtualCallSite,GapDefinition> gaps=new HashMap<VirtualCallSite,GapDefinition>();
     
 }

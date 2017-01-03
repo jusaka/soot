@@ -1,9 +1,8 @@
 package soot.jimple.spark.summary;
-import soot.Type;
 
 public class FieldObject{
 	BaseObject baseObject;
-	Type baseType;
+	String baseType;
 	String accessPath;
 	String type;
 	boolean isNew=false;
@@ -20,7 +19,7 @@ public class FieldObject{
 		}
 	}
 	
-	public FieldObject(Type baseType,String type){
+	public FieldObject(String baseType,String type){
 		this.baseType=baseType;
 		this.type=type;
 		isNew=true;
@@ -30,9 +29,9 @@ public class FieldObject{
 		if(other==null||this==null) return false;
 		if(other==this) return true;
 		FieldObject otherObject=(FieldObject)other;
-		if(!this.validate()||!otherObject.validate()){
-			return false;
-		}
+		
+		if(!this.validate()||!otherObject.validate()) return false;
+		
 		if(!this.type.equals(otherObject.type)){
 			return false;
 		}
@@ -81,5 +80,35 @@ public class FieldObject{
 			}
 		}
 		return hashCode;
+	}
+	
+	
+	public String toString(){
+		String str="FieldObject:";
+		if(isNew){
+			str+=baseType;
+		}else{
+			str+=baseObject.id;
+		}
+		if(accessPath!=null){
+			str+=accessPath;
+		}
+		str+=" "+type;
+		return str;
+	}
+	public String getFieldString(){
+		String str="";
+		if(isNew){
+			str+="new "+baseType;
+		}else{
+			str+=baseObject.id;
+		}
+		if(accessPath!=null){
+			str+=accessPath;
+		}
+		return str;
+	}
+	public String getFieldType(){
+		return this.type;
 	}
 }
