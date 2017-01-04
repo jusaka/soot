@@ -23,14 +23,19 @@ import soot.toolkits.scalar.Pair;
 
 public class MethodObjects {
 	private SootMethod method;
-	private Map<FieldObject,Set<FieldObject>> summaries;
+	private Map<FieldObject,Set<FieldObject>> destToSourceMap;
+	private Map<FieldObject,Set<FieldObject>> sourceToDestMap;
 	private Map<Integer,BaseObject> baseObjects;
 	private Map<Integer,GapDefinition> gaps;
+	private BaseObject thisObject;
+	private BaseObject returnObject;
+	private Map<Integer,BaseObject> paramObjects;
+	private Map<Integer,Set<BaseObject>> gapObjects;
 	private String methodSig;
 	private int lastBaseObjectId;
 	private int lastGapId;
 	public MethodObjects(){
-		summaries=new HashMap<FieldObject,Set<FieldObject>>();
+		destToSourceMap=new HashMap<FieldObject,Set<FieldObject>>();
 		baseObjects=new HashMap<Integer,BaseObject>();
 		gaps=new HashMap<Integer,GapDefinition>();
 		this.lastBaseObjectId=0;
@@ -54,34 +59,38 @@ public class MethodObjects {
 		Type type=fakeNode.getType();
 		Pair pair=(Pair)fakeNode.getNewExpr();
 		BaseObjectType baseObjectType=(BaseObjectType)pair.getO1();
-		BaseObject baseObject=new BaseObject(baseObjectID,type.toString(),baseObjectType);
+		BaseObject baseObject=new BaseObject(this,baseObjectID,type.toString(),baseObjectType);
 		if(baseObjectType==BaseObjectType.Parameter){
 			baseObject.setIndex((Integer)pair.getO2());
+			
 		}else if(baseObjectType==BaseObjectType.GapReturn||
 				baseObjectType==BaseObjectType.GapBaseObject){
+			
 			baseObject.setGapId(((GapDefinition)pair.getO2()).getID());
 		}else if(baseObjectType==BaseObjectType.GapParameter){
+			
 			Pair o2=(Pair)pair.getO2();
 			baseObject.setGapId(((GapDefinition)o2.getO1()).getID());
 			baseObject.setIndex((Integer)o2.getO2());
 		}
 		baseObjects.put(baseObjectID, baseObject);
+		setBaseObjectByType(baseObject);
 		return baseObject;
 	}
-	public boolean addSummary(FakeNode node,PointsToSetInternal p2set,PAG pag){
+	public boolean addDestToSource(FakeNode node,PointsToSetInternal p2set,PAG pag){
 		boolean[] isAdded=new boolean[1];
 		p2set.forall( new P2SetVisitor() {
         public final void visit( Node n ) { 
         	FieldObject src=getFieldObject(n,pag);
         	FieldObject dest=getFieldObject(node,pag);
         	if(src.equals(dest)&&src.baseObject!=null){
-        		if(BaseObjectType.isGap(src.baseObject.baseObjectType)) return;
+        		if(src.baseObject.isGap()) return;
         		else if(!src.hasField) return;
         	}
-        	Set<FieldObject> srcSet=summaries.get(dest);
+        	Set<FieldObject> srcSet=destToSourceMap.get(dest);
         	if(srcSet==null){
         		srcSet=new HashSet<FieldObject>();
-        		summaries.put(dest, srcSet);
+        		destToSourceMap.put(dest, srcSet);
         	}
         	if(!srcSet.contains(src)){
         		srcSet.add(src);
@@ -98,7 +107,7 @@ public class MethodObjects {
 		for(AllocDotField allocDotField:src.getAllFieldRefs()){
 			SparkField field=allocDotField.getField();
 			if(field.getType() instanceof RefType&&
-					addSummary(dest.getFakeBaseNode(field),allocDotField.getP2Set(),pag)){
+					addDestToSource(dest.getFakeBaseNode(field),allocDotField.getP2Set(),pag)){
 				isAdded=true;
 			}
 		}
@@ -121,7 +130,9 @@ public class MethodObjects {
 			BaseObject baseObject=pag.baseObjects.get(cur);
 			StringBuilder sb=new StringBuilder();
 			while(!stack.isEmpty()){
-				sb.append("."+stack.pop().toString());
+				sb.append(".[");
+				sb.append(stack.pop().toString());
+				sb.append("]");
 			}
 			if(baseObject!=null){
 				String accessPath=sb.length()==0?null:sb.toString();
@@ -137,11 +148,11 @@ public class MethodObjects {
 	}
 	public void compact(){
 		Set<FieldObject> needToRemove=new HashSet<FieldObject>();
-		for(FieldObject dest:summaries.keySet()){
-			if(summaries.get(dest).size()==0){
+		for(FieldObject dest:destToSourceMap.keySet()){
+			if(destToSourceMap.get(dest).size()==0){
 				needToRemove.add(dest);
-			}else if(summaries.get(dest).size()==1){
-				for(FieldObject src:summaries.get(dest)){
+			}else if(destToSourceMap.get(dest).size()==1){
+				for(FieldObject src:destToSourceMap.get(dest)){
 					if(src.equals(dest)){
 						needToRemove.add(dest);
 					}
@@ -150,27 +161,8 @@ public class MethodObjects {
 			
 		}
 		for(FieldObject dest:needToRemove){
-			summaries.remove(dest);
+			destToSourceMap.remove(dest);
 		}
-//		Set<Pair<FieldObject,FieldObject>> removeSet=new HashSet<Pair<FieldObject,FieldObject>>();
-//		for(FieldObject dest:summaries.keySet()){
-//			for(FieldObject src:summaries.get(dest)){
-//				for(FieldObject temp:summaries.get(src)){
-//					if(summaries.get(dest).contains(temp)){
-//						Pair<FieldObject,FieldObject> pair=new Pair<FieldObject,FieldObject>(temp,dest);
-//						removeSet.add(pair);
-//					}
-//				}
-//			}
-//		}
-//		for(Pair<FieldObject,FieldObject> pair:removeSet){
-//			if(summaries.get(pair.getO2())!=null){
-//				summaries.get(pair.getO2()).remove(pair.getO1());
-//				if(summaries.get(pair.getO2()).isEmpty()){
-//					summaries.remove(pair.getO2());
-//				}
-//			}
-//		}
 	}
 	public void setMethod(SootMethod method){
 		if(this.method==null){
@@ -192,8 +184,17 @@ public class MethodObjects {
 	public Map<Integer,GapDefinition> getGaps(){
 		return this.gaps;
 	}
+	public Collection<Integer> getGapsId(){
+		if(gapObjects==null){
+			return new HashSet<Integer>();
+		}
+		return gapObjects.keySet();
+	}
+	public GapDefinition getGap(int i){
+		return this.gaps.get(i);
+	}
 	public Map<FieldObject,Set<FieldObject>> getSummaries(){
-		return this.summaries;
+		return this.destToSourceMap;
 	}
 	public BaseObject getBaseObject(int i){
 		return baseObjects.get(i);
@@ -201,36 +202,89 @@ public class MethodObjects {
 	public Collection<BaseObject> getBaseObjects(){
 		return baseObjects.values();
 	}
+	public BaseObject getThisObject(){
+		return thisObject;
+	}
+	public BaseObject getReturnObject(){
+		return returnObject;
+	}
+	public BaseObject getParamObject(int index){
+		return paramObjects.get(index);
+	}
+	public Collection<Integer> getParamIndexes(){
+		if(paramObjects==null){
+			return null;
+		}
+		return paramObjects.keySet();
+	}
+	public Set<BaseObject> getBaseObjects(GapDefinition gap){
+		return gapObjects.get(gap.getID());
+	}
 	public void addBaseObject(BaseObject baseObject){
 		int id=baseObject.getID();
 		if((id+1)>lastBaseObjectId){
 			lastBaseObjectId=id+1;
 		}
 		baseObjects.put(baseObject.getID(),baseObject);
+		setBaseObjectByType(baseObject);
 	}
-	public void addSummary(FieldObject dest,Set<FieldObject> source){
+	
+	private void setBaseObjectByType(BaseObject baseObject){
+		switch(baseObject.baseObjectType){
+		case This:
+			thisObject=baseObject;
+			break;
+		case Parameter:
+			if(paramObjects==null){
+				paramObjects=new HashMap<Integer,BaseObject>();
+			}
+			paramObjects.put(baseObject.getIndex(),baseObject);
+			break;
+		case Return:
+			returnObject=baseObject;
+			break;
+		case GapBaseObject:
+		case GapParameter:
+		case GapReturn:
+			if(gapObjects==null){
+				gapObjects=new HashMap<Integer,Set<BaseObject>>();
+				
+			}
+			int gapId=baseObject.getGapId();
+			if(!gapObjects.containsKey(gapId)){
+				gapObjects.put(gapId, new HashSet<BaseObject>());
+			}
+			gapObjects.get(gapId).add(baseObject);
+			break;
+		default:
+			break;
+		}
+	}
+	
+	
+	public void addDestToSource(FieldObject dest,Set<FieldObject> source){
 		Set<FieldObject> sourceSet;
-		if(summaries.containsKey(dest)){
-			sourceSet=summaries.get(dest);
+		if(destToSourceMap.containsKey(dest)){
+			sourceSet=destToSourceMap.get(dest);
 		}else{
 			sourceSet=new HashSet<FieldObject>();
-			summaries.put(dest, sourceSet);
+			destToSourceMap.put(dest, sourceSet);
 		}
 		sourceSet.addAll(source);
 	}
-	public void addSummary(FieldObject dest,FieldObject source){
+	public void addDestToSource(FieldObject dest,FieldObject source){
 		Set<FieldObject> sourceSet;
-		if(summaries.containsKey(dest)){
-			sourceSet=summaries.get(dest);
+		if(destToSourceMap.containsKey(dest)){
+			sourceSet=destToSourceMap.get(dest);
 		}else{
 			sourceSet=new HashSet<FieldObject>();
-			summaries.put(dest, sourceSet);
+			destToSourceMap.put(dest, sourceSet);
 		}
 		sourceSet.add(source);
 	}
 	
 	public boolean isEmpty(){
-		return summaries.isEmpty();
+		return destToSourceMap.isEmpty();
 	}
 	public void addGap(GapDefinition gap){
 		int id=gap.getID();
@@ -240,5 +294,20 @@ public class MethodObjects {
 		if(!gaps.containsKey(id)){
 			gaps.put(id, gap);
 		}
+	}
+	public Map<FieldObject,Set<FieldObject>> getSourceToDestMap(){
+		if(sourceToDestMap!=null){
+			return sourceToDestMap;
+		}
+		sourceToDestMap=new HashMap<FieldObject,Set<FieldObject>>();
+		for(FieldObject dest:destToSourceMap.keySet()){
+			for(FieldObject src:destToSourceMap.get(dest)){
+				if(!sourceToDestMap.containsKey(src)){
+					sourceToDestMap.put(src, new HashSet<FieldObject>());
+				}
+				sourceToDestMap.get(src).add(dest);
+			}
+		}
+		return sourceToDestMap;
 	}
 }

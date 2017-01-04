@@ -98,7 +98,7 @@ public class PAGWriter  {
 		if(baseObject.getIndex()!=-1){
 			writer.writeAttribute(PAGConstants.ATTRIBUTE_INDEX, baseObject.getIndex()+"");
 		}
-		writer.writeAttribute(PAGConstants.ATTRIBUTE_BASETYPE, baseObject.getType()+"");
+		writer.writeAttribute(PAGConstants.ATTRIBUTE_BASETYPE, baseObject.getTypeString()+"");
 		writer.writeEndElement();
 	}
 	private void writeFieldObject(XMLStreamWriter writer,FieldObject fieldObject,Set<FieldObject> sourceObjects)throws XMLStreamException {

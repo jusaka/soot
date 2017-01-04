@@ -35,7 +35,8 @@ public class ReachableMethods
     private final Set<MethodOrMethodContext> set = new HashSet<MethodOrMethodContext>();
     private QueueReader<MethodOrMethodContext> unprocessedMethods;
     private final QueueReader<MethodOrMethodContext> allReachables = reachables.reader();
-    private Filter filter;
+    private Filter filter;   
+    
     public ReachableMethods( CallGraph graph, Iterator<MethodOrMethodContext> entryPoints ) {
         this( graph, entryPoints, null );
     }

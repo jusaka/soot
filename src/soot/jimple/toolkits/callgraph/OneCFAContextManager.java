@@ -38,7 +38,11 @@ public class OneCFAContextManager implements ContextManager
     public void addVirtualEdge( MethodOrMethodContext src, Unit srcUnit, SootMethod target, Kind kind, Context typeContext ) {
         cg.addEdge( new Edge( src, srcUnit, MethodContext.v( target, srcUnit ), kind ) );
     }
-
+    
+    @Override
+	public void addFakeEdge(FakeEdge fakeEdge) {
+		cg.addFakeEdge(fakeEdge);
+	}
     public CallGraph callGraph() { return cg; }
 }
 

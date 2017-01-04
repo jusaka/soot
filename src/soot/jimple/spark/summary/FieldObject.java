@@ -111,4 +111,22 @@ public class FieldObject{
 	public String getFieldType(){
 		return this.type;
 	}
+	public boolean isGapBase(){
+		return !isNew&&!hasField&&baseObject.baseObjectType==BaseObjectType.GapBaseObject;
+	}
+	public boolean isNew(){
+		return isNew;
+	}
+	public boolean hasField(){
+		return hasField;
+	}
+	public String getBaseType(){
+		return baseType;
+	}
+	public String getAccessPath(){
+		return accessPath;
+	}
+	public BaseObject getBaseObject(){
+		return baseObject;
+	}
 }

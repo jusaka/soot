@@ -1,12 +1,16 @@
 package soot.jimple.spark.summary;
 
+import soot.Type;
+
 public class BaseObject {
 	BaseObjectType baseObjectType;
 	String type;
 	int id;
 	int index=-1;
 	int gapId=-1;
-	public BaseObject(int id,String type,BaseObjectType baseObjectType){
+	MethodObjects methodObjects;
+	public BaseObject(MethodObjects methodObjects,int id,String type,BaseObjectType baseObjectType){
+		this.methodObjects=methodObjects;
 		this.baseObjectType=baseObjectType;
 		this.type=type;
 		this.id=id;
@@ -20,8 +24,11 @@ public class BaseObject {
 	public int getGapId(){
 		return this.gapId;
 	}
-	public String getType(){
+	public String getTypeString(){
 		return this.type;
+	}
+	public Type getType(){
+		return ObjectUtils.getTypeFromString(type);
 	}
 	public BaseObjectType getBaseObjectType(){
 		return this.baseObjectType;
@@ -78,5 +85,11 @@ public class BaseObject {
 			str+=" "+index; 
 		}
 		return str;
+	}
+	public boolean isGap(){
+		return BaseObjectType.isGap(this.baseObjectType);
+	}
+	public MethodObjects getMethodObjects(){
+		return this.methodObjects;
 	}
 }

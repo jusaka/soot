@@ -84,7 +84,7 @@ public class PAGReader {
 				}else if (reader.getLocalName().equals(PAGConstants.TREE_BASEOBJECT) && reader.isStartElement()) {
 					if(state == State.baseobjects){
 						MethodObjects methodObjects=classObjects.getMethodObjects(currentMethod);
-						methodObjects.addBaseObject(createBaseObject(reader));
+						methodObjects.addBaseObject(createBaseObject(methodObjects,reader));
 						state = State.baseobject;
 					}
 					else
@@ -113,7 +113,7 @@ public class PAGReader {
 						MethodObjects methodObjects=classObjects.getMethodObjects(currentMethod);
 						Map<FieldObject,Set<FieldObject>> summary=createSummary(reader,methodObjects);
 						for(FieldObject dest:summary.keySet()){
-							methodObjects.addSummary(dest, summary.get(dest));
+							methodObjects.addDestToSource(dest, summary.get(dest));
 						}
 						state = State.object;
 					}
@@ -171,12 +171,12 @@ public class PAGReader {
 		}
 	}
 
-	private BaseObject createBaseObject(XMLStreamReader reader){
+	private BaseObject createBaseObject(MethodObjects methodObjects,XMLStreamReader reader){
 		int num=Integer.parseInt(getAttributeByName(reader,PAGConstants.ATTRIBUTE_ID));
 		BaseObjectType baseObjectType=BaseObjectType.
 				getTypeByValue(getAttributeByName(reader,PAGConstants.ATTRIBUTE_TYPE));
 		String type=getAttributeByName(reader,PAGConstants.ATTRIBUTE_BASETYPE);
-		BaseObject baseObject=new BaseObject(num,type,baseObjectType);
+		BaseObject baseObject=new BaseObject(methodObjects,num,type,baseObjectType);
 		if(BaseObjectType.isGap(baseObjectType)){
 			int gap=Integer.parseInt(getAttributeByName(reader,PAGConstants.ATTRIBUTE_GAP));
 			baseObject.setGapId(gap);

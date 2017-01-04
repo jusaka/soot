@@ -9,6 +9,19 @@ import java.util.Set;
 
 import javax.xml.stream.XMLStreamException;
 
+import soot.ArrayType;
+import soot.BooleanType;
+import soot.ByteType;
+import soot.CharType;
+import soot.DoubleType;
+import soot.FloatType;
+import soot.IntType;
+import soot.LongType;
+import soot.RefType;
+import soot.Scene;
+import soot.ShortType;
+import soot.SootMethod;
+import soot.Type;
 import soot.jimple.spark.xml.PAGReader;
 import soot.jimple.spark.xml.SummaryXMLException;
 
@@ -66,14 +79,39 @@ public class ClassesObjects {
 		return false;
 	}
 	
-	
+	public MethodObjects getMethodObjects(SootMethod method){
+		String className=method.getDeclaringClass().getName();
+		read(className);
+		if(classObjectsMap.containsKey(className)){
+			ClassObjects classObjects=classObjectsMap.get(className);
+			return classObjects.getMethodObjects(method.getSignature());
+		}
+		return null;
+	}
+	public MethodObjects getMethodObjects(String signature){
+		String className=Scene.v().signatureToClass(signature);
+		return getMethodObjects(className,signature,false);
+	}
+	public MethodObjects getMethodObjects(String className,String methodSig,boolean isSub){
+		read(className);
+		if(!classObjectsMap.containsKey(className)){
+			return null;
+		}
+		ClassObjects classObjects=classObjectsMap.get(className);
+		if(!isSub){
+			return classObjects.getMethodObjects(methodSig);
+		}else{
+			return classObjects.getMethodObjectsBySubSig(methodSig);
+		}
+	}
 	public void read(String className){
-		if(!files.containsKey(className)||supportedClasses.contains(className)) return;
+		if(!loadableClasses.contains(className)) return;
 		File file=files.get(className);
 		try {
 			ClassObjects classObjects=reader.read(file);
 			classObjectsMap.put(className, classObjects);
 			supportedClasses.add(className);
+			loadableClasses.remove(className);
 		} catch (XMLStreamException | SummaryXMLException | IOException e) {
 			e.printStackTrace();
 		}

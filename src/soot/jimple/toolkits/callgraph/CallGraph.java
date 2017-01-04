@@ -29,6 +29,7 @@ import soot.MethodOrMethodContext;
 import soot.SootMethod;
 import soot.Unit;
 import soot.jimple.Stmt;
+import soot.jimple.spark.summary.GapDefinition;
 import soot.util.queue.ChunkedQueue;
 import soot.util.queue.QueueReader;
 
@@ -46,7 +47,12 @@ public class CallGraph implements Iterable<Edge>
     protected Map<Unit, Edge> srcUnitToEdge = new HashMap<Unit, Edge>();
     protected Map<MethodOrMethodContext, Edge> tgtToEdge = new HashMap<MethodOrMethodContext, Edge>();
     protected Edge dummy = new Edge( null, null, null, Kind.INVALID );
-
+    protected Set<FakeEdge> fakeEdges=new HashSet<FakeEdge>();
+    protected Map<GapDefinition,FakeEdge> gapToEdge=new HashMap<GapDefinition,FakeEdge>();
+    protected ChunkedQueue<FakeEdge> fakeStream = new ChunkedQueue<FakeEdge>();
+    protected QueueReader<FakeEdge> fakeReader = fakeStream.reader();
+    protected FakeEdge dummyFake = new FakeEdge( null, null, null, null,null,null,null);
+    
     /** Used to add an edge to the call graph. Returns true iff the edge was
      * not already present. */
     public boolean addEdge( Edge e ) {
@@ -74,6 +80,20 @@ public class CallGraph implements Iterable<Edge>
             position = dummy;
         }
         e.insertAfterByTgt( position );
+        return true;
+    }
+    
+    public boolean addFakeEdge(FakeEdge fakeEdge){
+    	if(fakeEdge.isValid()) return false;
+    	if( !fakeEdges.add( fakeEdge ) ) return false;
+    	fakeStream.add(fakeEdge);
+        FakeEdge position = null;
+        position = gapToEdge.get( fakeEdge.srcGap());
+        if( position == null ) {
+        	gapToEdge.put( fakeEdge.srcGap(), fakeEdge );
+            position = dummyFake;
+        }
+        fakeEdge.insertAfterByGap( position );
         return true;
     }
     
@@ -277,6 +297,18 @@ public class CallGraph implements Iterable<Edge>
     public QueueReader<Edge> newListener() {
         return stream.reader();
     }
+    
+    
+    public QueueReader<FakeEdge> fakeListener() {
+        return fakeReader.clone();
+    }
+    /** Returns a QueueReader object which will contain ONLY NEW edges
+     * which will be added to the graph.
+     */
+    public QueueReader<FakeEdge> newFakeListener() {
+        return fakeStream.reader();
+    }
+    
     public String toString() {
         QueueReader<Edge> reader = listener();
         StringBuffer out = new StringBuffer();

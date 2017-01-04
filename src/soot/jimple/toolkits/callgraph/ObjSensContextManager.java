@@ -38,7 +38,14 @@ public class ObjSensContextManager implements ContextManager
     public void addVirtualEdge( MethodOrMethodContext src, Unit srcUnit, SootMethod target, Kind kind, Context typeContext ) {
         cg.addEdge( new Edge( src, srcUnit, MethodContext.v( target, typeContext ), kind ) );
     }
+    
 
     public CallGraph callGraph() { return cg; }
+
+	@Override
+	public void addFakeEdge(FakeEdge fakeEdge) {
+		cg.addFakeEdge(fakeEdge);
+	}
+    
 }
 

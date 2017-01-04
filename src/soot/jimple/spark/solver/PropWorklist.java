@@ -157,7 +157,7 @@ public final class PropWorklist extends Propagator {
 				p2Set.clear();
 				p2Set.getNewSet().add(node);
 			}else{
-				Options.v().method_objects().addSummary(node, p2Set, pag);
+				Options.v().method_objects().addDestToSource(node, p2Set, pag);
 				p2Set.clear();
 			}
 		}

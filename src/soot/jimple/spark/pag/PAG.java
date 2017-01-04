@@ -18,55 +18,21 @@
  */
 
 package soot.jimple.spark.pag;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import soot.Context;
-import soot.FastHierarchy;
-import soot.G;
-import soot.Kind;
-import soot.Local;
-import soot.PhaseOptions;
-import soot.PointsToAnalysis;
-import soot.PointsToSet;
-import soot.RefLikeType;
-import soot.RefType;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootField;
-import soot.SootMethod;
-import soot.Type;
-import soot.Value;
-import soot.jimple.AssignStmt;
-import soot.jimple.ClassConstant;
-import soot.jimple.InstanceInvokeExpr;
-import soot.jimple.InvokeExpr;
-import soot.jimple.NullConstant;
-import soot.jimple.Stmt;
+
+import soot.*;
+import soot.jimple.*;
 import soot.jimple.spark.builder.GlobalNodeFactory;
 import soot.jimple.spark.builder.MethodNodeFactory;
 import soot.jimple.spark.internal.ClientAccessibilityOracle;
 import soot.jimple.spark.internal.SparkLibraryHelper;
 import soot.jimple.spark.internal.TypeManager;
-import soot.jimple.spark.sets.BitPointsToSet;
-import soot.jimple.spark.sets.DoublePointsToSet;
-import soot.jimple.spark.sets.EmptyPointsToSet;
-import soot.jimple.spark.sets.HashPointsToSet;
-import soot.jimple.spark.sets.HybridPointsToSet;
-import soot.jimple.spark.sets.P2SetFactory;
-import soot.jimple.spark.sets.P2SetVisitor;
-import soot.jimple.spark.sets.PointsToSetInternal;
-import soot.jimple.spark.sets.SharedHybridSet;
-import soot.jimple.spark.sets.SharedListSet;
-import soot.jimple.spark.sets.SortedArraySet;
+import soot.jimple.spark.sets.*;
 import soot.jimple.spark.solver.OnFlyCallGraph;
-import soot.jimple.spark.summary.BaseObject;
+import soot.jimple.spark.summary.*;
 import soot.jimple.toolkits.callgraph.Edge;
+import soot.jimple.toolkits.callgraph.FakeEdge;
 import soot.jimple.toolkits.pointer.util.NativeMethodDriver;
 import soot.options.CGOptions;
 import soot.options.Options;
@@ -496,8 +462,23 @@ public class PAG implements PointsToAnalysis {
 		}
 		return fakeNode;
 	}
+    
     public Map<FakeNode,BaseObject> baseObjects=new HashMap<FakeNode,BaseObject>();
 	
+    public FakeVarNode makeFakeVarNode(Object value, Type type, SootMethod method,String methodSig ){
+    	FakeVarNode ret = valToFakeVarNode.get( value );
+        if( ret == null ) {
+        	valToFakeVarNode.put( value, 
+                    ret = new FakeVarNode( this, value, type, method,methodSig ) );
+            addNodeTag( ret, method );
+        } else if( !( ret.getType().equals( type ) ) ) {
+            throw new RuntimeException( "Value "+value+" of type "+type+
+                    " previously had type "+ret.getType() );
+        }
+        return ret;
+    }
+    
+    
     public AllocNode makeStringConstantNode( String s ) {
         if( opts.types_for_sites() || opts.vta() )
             return makeAllocNode( RefType.v( "java.lang.String" ),
@@ -831,6 +812,50 @@ public class PAG implements PointsToAnalysis {
 		return assign2edges.get(val);
 	}
 	
+	final public void addCallTarget( FakeEdge fakeEdge ) {
+		
+		
+		MethodPAG srcmpag;
+		MethodObjects srcMethodObjects=fakeEdge.getSrcMethodObjects();
+		if(fakeEdge.srcFake()){
+			srcmpag = MethodPAG.v( this, fakeEdge.getSrcSig(),srcMethodObjects);
+		}else{
+			srcmpag = MethodPAG.v(this, fakeEdge.getSrc());
+		}
+		
+		MethodPAG tgtmpag;
+		if(fakeEdge.tgtFake()){
+			tgtmpag = MethodPAG.v( this, fakeEdge.getTgtSig(),fakeEdge.getTgtMethodObjects());
+		}else{
+			tgtmpag = MethodPAG.v( this, fakeEdge.getTgt() );
+		}
+		
+		GapDefinition gap=fakeEdge.srcGap();
+		Set<BaseObject> baseObjects=srcMethodObjects.getBaseObjects(gap);
+		for(BaseObject baseObject:baseObjects){
+			Node srcNode=srcmpag.nodeFactory().caseBaseObject(baseObject);
+        	srcNode = srcNode.getReplacement();
+			switch(baseObject.getBaseObjectType()){
+			case GapBaseObject:
+	        	Node thisNode = tgtmpag.nodeFactory().caseThis();
+	        	thisNode = thisNode.getReplacement();
+	        	addEdge(srcNode,thisNode);
+	        	break;
+			case GapReturn:
+				Node retNode = tgtmpag.nodeFactory().caseRet();
+        		retNode = retNode.getReplacement();
+        		addEdge( retNode, srcNode );
+        		break;
+			case GapParameter:
+				Node parmNode = tgtmpag.nodeFactory().caseParm( baseObject.getIndex());
+				parmNode = parmNode.getReplacement();
+    			addEdge(srcNode,parmNode);
+	        	break;
+			default:
+				break;
+			}
+		}
+	}
     final public void addCallTarget( Edge e ) {
         if( !e.passesParameters() ) return;
         MethodPAG srcmpag = MethodPAG.v( this, e.src() );
@@ -1205,6 +1230,7 @@ public class PAG implements PointsToAnalysis {
     private final Map<Object, GlobalVarNode> valToGlobalVarNode = new HashMap<Object, GlobalVarNode>(1000);
     private final Map<Object, AllocNode> valToAllocNode = new HashMap<Object, AllocNode>(1000);
     public final Map<Object, FakeNode> valToFakeNode=new HashMap<Object,FakeNode>(1000);
+    public final Map<Object, FakeVarNode> valToFakeVarNode=new HashMap<Object,FakeVarNode>(1000);
     public final Map<VarNode,FakeNode> varToFakeNode=new HashMap<VarNode,FakeNode>(1000);
     public Set<VarNode> needToAdd=new HashSet<VarNode>();
     

@@ -26,7 +26,6 @@ import soot.Context;
 import soot.Kind;
 import soot.Local;
 import soot.MethodOrMethodContext;
-import soot.RefLikeType;
 import soot.RefType;
 import soot.Scene;
 import soot.SootClass;
@@ -35,6 +34,7 @@ import soot.Value;
 import soot.jimple.AssignStmt;
 import soot.jimple.spark.pag.AllocNode;
 import soot.jimple.spark.pag.FakeNode;
+import soot.jimple.spark.pag.FakeVarNode;
 import soot.jimple.spark.pag.MethodPAG;
 import soot.jimple.spark.pag.Node;
 import soot.jimple.spark.pag.PAG;
@@ -42,13 +42,16 @@ import soot.jimple.spark.pag.StringConstantNode;
 import soot.jimple.spark.pag.VarNode;
 import soot.jimple.spark.sets.P2SetVisitor;
 import soot.jimple.spark.sets.PointsToSetInternal;
+import soot.jimple.spark.summary.BaseObject;
 import soot.jimple.spark.summary.BaseObjectType;
+import soot.jimple.spark.summary.FieldObject;
 import soot.jimple.spark.summary.GapDefinition;
 import soot.jimple.spark.summary.MethodObjects;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.CallGraphBuilder;
 import soot.jimple.toolkits.callgraph.ContextManager;
 import soot.jimple.toolkits.callgraph.Edge;
+import soot.jimple.toolkits.callgraph.FakeEdge;
 import soot.jimple.toolkits.callgraph.OnFlyCallGraphBuilder;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.jimple.toolkits.callgraph.VirtualCallSite;
@@ -68,6 +71,7 @@ public class OnFlyCallGraph {
     private final QueueReader<MethodOrMethodContext> reachablesReader;
     private final QueueReader<Edge> callEdges;
     private final CallGraph callGraph;
+    private final QueueReader<FakeEdge> fakeCallEdges;
 
     public ReachableMethods reachableMethods() { return reachableMethods; }
     public CallGraph callGraph() { return callGraph; }
@@ -81,11 +85,13 @@ public class OnFlyCallGraph {
         ofcgb = new OnFlyCallGraphBuilder( cm, reachableMethods, appOnly );
         reachablesReader = reachableMethods.listener();
         callEdges = cm.callGraph().listener();
+        fakeCallEdges=cm.callGraph().fakeListener();
     }
     public void build() {
         ofcgb.processReachables();
         processReachables();
         processCallEdges();
+        processFakeCallEdges();
     }
     private void processReachables() {
         reachableMethods.update();
@@ -105,11 +111,40 @@ public class OnFlyCallGraph {
             pag.addCallTarget( e );
         }
     }
+    
+    private void processFakeCallEdges() {
+        while(fakeCallEdges.hasNext()) {
+        	FakeEdge fakeEdge=fakeCallEdges.next();
+        	MethodPAG amp;
+        	if(fakeEdge.tgtFake()){
+        		amp=MethodPAG.v(pag, fakeEdge.getTgtSig(),fakeEdge.getTgtMethodObjects());
+        	}else{
+        		amp=MethodPAG.v(pag, fakeEdge.getTgt());
+        	} 
+        	amp.build();
+        	amp.addToPAG(null);
+        	pag.addCallTarget( fakeEdge );
+        }
+    }
 
     public OnFlyCallGraphBuilder ofcgb() { return ofcgb; }
 
+    public void updateNode(FakeVarNode fvn){
+    	PointsToSetInternal p2set = fvn.getP2Set().getNewSet();
+		FieldObject fieldObject = (FieldObject) fvn.getVariable();
+		BaseObject baseObject = fieldObject.getBaseObject();
+		p2set.forall(new P2SetVisitor() {
+			public final void visit(Node n) {
+				 ofcgb.addType( baseObject, fvn, n.getType(), (AllocNode) n);
+			}
+		}); 
+    }
+    
     public void updatedNode( VarNode vn ) {
         Object r = vn.getVariable();
+        if(vn instanceof FakeVarNode&&((FieldObject)r).isGapBase()){
+    		updateNode((FakeVarNode)vn);
+    	}
         if( !(r instanceof Local) ) return;
         final Local receiver = (Local) r;
         final Context context = vn.context();
@@ -204,7 +239,7 @@ public class OnFlyCallGraph {
     private void handleGapCall(VirtualCallSite site,VarNode node,Pair pair,Value value){
     	PointsToSetInternal set=node.getP2Set();
     	FakeNode fakeNode=pag.makeFakeNode(pag, pair,value.getType(), site.container());
-    	if(Options.v().method_objects().addSummary(fakeNode, set, pag)){
+    	if(Options.v().method_objects().addDestToSource(fakeNode, set, pag)){
     		set.clear();
     		set.add(fakeNode);
         	pag.needToAdd.add(node);

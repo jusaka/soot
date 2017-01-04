@@ -20,58 +20,14 @@
 package soot.jimple.toolkits.callgraph;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import soot.ArrayType;
-import soot.Body;
-import soot.Context;
-import soot.EntryPoints;
-import soot.FastHierarchy;
-import soot.G;
-import soot.Kind;
-import soot.Local;
-import soot.MethodContext;
-import soot.MethodOrMethodContext;
-import soot.PackManager;
-import soot.PhaseOptions;
-import soot.RefType;
-import soot.Scene;
-import soot.SceneTransformer;
-import soot.SootClass;
-import soot.SootMethod;
-import soot.SootMethodRef;
-import soot.Transform;
-import soot.Type;
-import soot.Unit;
-import soot.Value;
+import soot.*;
 import soot.javaToJimple.LocalGenerator;
-import soot.jimple.AssignStmt;
-import soot.jimple.DynamicInvokeExpr;
-import soot.jimple.FieldRef;
-import soot.jimple.InstanceInvokeExpr;
-import soot.jimple.InvokeExpr;
-import soot.jimple.InvokeStmt;
-import soot.jimple.Jimple;
-import soot.jimple.NewArrayExpr;
-import soot.jimple.NewExpr;
-import soot.jimple.NewMultiArrayExpr;
-import soot.jimple.SpecialInvokeExpr;
-import soot.jimple.StaticFieldRef;
-import soot.jimple.StaticInvokeExpr;
-import soot.jimple.Stmt;
-import soot.jimple.StringConstant;
-import soot.jimple.VirtualInvokeExpr;
-import soot.jimple.spark.pag.FakeNode;
+import soot.jimple.*;
+import soot.jimple.spark.pag.FakeVarNode;
 import soot.jimple.spark.pag.PAG;
-import soot.jimple.spark.summary.GapDefinition;
-import soot.jimple.spark.summary.MethodObjects;
+import soot.jimple.spark.summary.*;
 import soot.jimple.toolkits.reflection.ReflectionTraceInfo;
 import soot.options.CGOptions;
 import soot.options.Options;
@@ -426,6 +382,41 @@ public final class OnFlyCallGraphBuilder
     }
     public boolean wantTypes( Local receiver ) {
         return receiverToSites.get(receiver) != null;
+    }
+    
+    
+    public void addType( BaseObject baseObject, FakeVarNode vn, Type type, Context context ) {
+    	ClassesObjects classesObjects = Options.v().classes_objects();
+    	MethodObjects srcMethodObjects=baseObject.getMethodObjects();
+    	int gapId=baseObject.getGapId();
+    	GapDefinition gap=srcMethodObjects.getGap(gapId);
+		String srcSig=vn.getMethodSig();
+		SootMethod srcMethod=vn.getMethod();
+		String tgtSig=ObjectUtils.getTargetSig(type.toString(), gap.getSignature());
+		
+		SootMethod tgtMethod=null;
+    	if(classesObjects.supportsClass(type.toString())){
+    		MethodObjects targetMethodObjects=classesObjects.getMethodObjects(tgtSig);
+    		if(targetMethodObjects!=null&&!targetMethodObjects.isEmpty()){
+				FakeEdge fakeEdge = new FakeEdge(srcMethod, srcSig, 
+						srcMethodObjects, tgtMethod, tgtSig, targetMethodObjects, gap);
+				cm.addFakeEdge(fakeEdge);
+				return;
+    		}
+    	}
+    	NumberedString subSig=Scene.v().getSubSigNumberer().findOrAdd(Scene.v().signatureToSubsignature(tgtSig));
+    	VirtualCalls.v().resolve( type,
+                vn.getType(),
+                subSig,
+                srcMethod, 
+                targetsQueue,
+                appOnly);
+    	
+    	while(targets.hasNext()) {
+            tgtMethod = (SootMethod) targets.next();
+            FakeEdge fakeEdge=new FakeEdge(srcMethod,srcSig,srcMethodObjects,tgtMethod,tgtSig,null,gap);
+			cm.addFakeEdge(fakeEdge);
+        }
     }
     public void addType( Local receiver, Context srcContext, Type type, Context typeContext ) {
         FastHierarchy fh = Scene.v().getOrMakeFastHierarchy();

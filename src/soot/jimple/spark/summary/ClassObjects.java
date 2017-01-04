@@ -3,6 +3,8 @@ package soot.jimple.spark.summary;
 import java.util.HashMap;
 import java.util.Map;
 
+import soot.Scene;
+
 public class ClassObjects {
 	private String className;
 	private Map<Integer,GapDefinition> gaps;
@@ -41,8 +43,21 @@ public class ClassObjects {
 		return methodObjectsMap;
 	}
 	public MethodObjects getMethodObjects(String methodSig){
-		return methodObjectsMap.get(methodSig);
+		if(methodObjectsMap.containsKey(methodSig)){
+			return methodObjectsMap.get(methodSig);
+		}
+		return getMethodObjectsBySubSig(Scene.v().signatureToSubsignature(methodSig));
 	}
+	public MethodObjects getMethodObjectsBySubSig(String subSig){
+		for(String methodSig:methodObjectsMap.keySet()){
+			String methodSubSig=Scene.v().signatureToSubsignature(methodSig);
+			if(methodSubSig.equals(subSig)){
+				return methodObjectsMap.get(methodSubSig);
+			}
+		}
+		return null;	
+	}
+	
 	public boolean isEmpty(){
 		return gaps.isEmpty()&&methodObjectsMap.isEmpty();
 	}
@@ -55,16 +70,13 @@ public class ClassObjects {
 	public void loadMethodGaps(){
 		for(String methodSig:methodObjectsMap.keySet()){
 			MethodObjects methodObjects=methodObjectsMap.get(methodSig);
-			for(BaseObject baseObject:methodObjects.getBaseObjects()){
-				if(baseObject.gapId!=-1){
-					if(gaps.containsKey(baseObject.gapId)){
-						methodObjects.addGap(gaps.get(baseObject.gapId));
-					}else{
-						throw new RuntimeException("Error gap dependency");
-					}
+			for(Integer gapId:methodObjects.getGapsId()){
+				if(gaps.containsKey(gapId)){
+					methodObjects.addGap(gaps.get(gapId));
+				}else{
+					throw new RuntimeException("Error gap dependency");
 				}
 			}
 		}
 	}
-	
 }

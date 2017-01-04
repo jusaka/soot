@@ -19,6 +19,7 @@
 
 package soot.jimple.spark.pag;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -39,6 +40,7 @@ import soot.jimple.Stmt;
 import soot.jimple.spark.builder.MethodNodeFactory;
 import soot.jimple.spark.internal.SparkLibraryHelper;
 import soot.jimple.spark.summary.ClassesObjects;
+import soot.jimple.spark.summary.MethodObjects;
 import soot.options.CGOptions;
 import soot.options.Options;
 import soot.util.NumberedString;
@@ -58,7 +60,14 @@ public final class MethodPAG {
         this.method = m;
         this.nodeFactory = new MethodNodeFactory( pag, this );
     }
-
+    protected MethodPAG( PAG pag, String methodSig,MethodObjects methodObjects,boolean isFake ) {
+        this.pag = pag;
+        this.methodSig = methodSig;
+        this.methodObjects=methodObjects;
+        this.isFake=isFake;
+        this.nodeFactory = new MethodNodeFactory( pag, this );
+    }
+    
     private Set<Context> addedContexts;
 
     /** Adds this method to the main PAG, with all VarNodes parameterized by
@@ -128,41 +137,51 @@ public final class MethodPAG {
     
     SootMethod method;
     public SootMethod getMethod() { return method; }
+    String methodSig;
+    public String getMethodSig(){ return methodSig;}
     protected MethodNodeFactory nodeFactory;
     public MethodNodeFactory nodeFactory() { return nodeFactory; }
-
+    private boolean isFake=false;
+    public boolean isFake() {return this.isFake;}
+    private MethodObjects methodObjects=null;
+    public MethodObjects getMethodObjects(){ return methodObjects; }
+    
+    
     public static MethodPAG v( PAG pag, SootMethod m ) {
-        MethodPAG ret = G.v().MethodPAG_methodToPag.get( m );
+    	MethodPAG ret = G.v().MethodPAG_methodToPag.get( m );
         if( ret == null ) { 
             ret = new MethodPAG( pag, m );
+            ret.isFake=false;
             G.v().MethodPAG_methodToPag.put( m, ret );
         }
         return ret;
     }
-
+    public static MethodPAG v( PAG pag, String methodSig,MethodObjects methodObjects) {
+        MethodPAG ret = G.v().MethodPAG_methodSigToPag.get( methodSig );
+        if( ret == null ) { 
+        	ret = new MethodPAG( pag, methodSig,methodObjects,true);
+            G.v().MethodPAG_methodSigToPag.put( methodSig, ret );
+        }
+        return ret;
+    }
     public void build() {
         if( hasBeenBuilt ) return;
         hasBeenBuilt = true;
-        if( method.isNative() ) {
-            if( pag().getOpts().simulate_natives() ) {
-                buildNative();
+        
+        if(!buildLibrary()){
+        	if( method.isNative() ) {
+                if( pag().getOpts().simulate_natives() ) {
+                    buildNative();
+                }
+            } else {
+                if( method.isConcrete() && !method.isPhantom() ) {
+                    buildNormal();
+                }
             }
-        } else {
-            if( method.isConcrete() && !method.isPhantom() ) {
-                buildNormal();
-            }else{
-            	SootClass sc=method.getDeclaringClass();
-            	ClassesObjects classesObjects=Options.v().classes_objects();
-            	if(classesObjects.supportsClass(sc.getName())){
-            		buildLibrary(classesObjects);
-            	}
-            }
+            addMiscEdges();
         }
-        addMiscEdges();
     }
-
     
-
 	protected VarNode parameterize( LocalVarNode vn, Context varNodeParameter ) {
         SootMethod m = vn.getMethod();
         if( m != method && m != null ) throw new RuntimeException( "VarNode "+vn+" with method "+m+" parameterized in method "+method );
@@ -185,9 +204,23 @@ public final class MethodPAG {
     protected boolean hasBeenAdded = false;
     protected boolean hasBeenBuilt = false;
 
-    protected void buildLibrary(ClassesObjects classesObjects) {
-		//TODO 在使用的时候LoadLibrary的Summary
-    	
+    protected boolean buildLibrary() {
+    	ClassesObjects classesObjects=Options.v().classes_objects();
+    	if(classesObjects==null) return false;
+    	if(isFake){
+    		MethodObjects methodObjects=classesObjects.getMethodObjects(methodSig);
+    		if(methodObjects!=null){
+    			nodeFactory.handleMethodObjects(methodObjects);
+    		}
+    		return true;
+    	}else{
+    		MethodObjects methodObjects=classesObjects.getMethodObjects(method);
+    		if(methodObjects!=null){
+    			nodeFactory.handleMethodObjects(methodObjects);
+    			return true;
+    		}
+    	}
+    	return false;
 	}
     protected void buildNormal() {
         Body b = method.retrieveActiveBody();
