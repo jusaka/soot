@@ -9,19 +9,8 @@ import java.util.Set;
 
 import javax.xml.stream.XMLStreamException;
 
-import soot.ArrayType;
-import soot.BooleanType;
-import soot.ByteType;
-import soot.CharType;
-import soot.DoubleType;
-import soot.FloatType;
-import soot.IntType;
-import soot.LongType;
-import soot.RefType;
 import soot.Scene;
-import soot.ShortType;
 import soot.SootMethod;
-import soot.Type;
 import soot.jimple.spark.xml.PAGReader;
 import soot.jimple.spark.xml.SummaryXMLException;
 
@@ -79,11 +68,14 @@ public class ClassesObjects {
 		return false;
 	}
 	
+	public ClassObjects getClassObjects(String className){
+		read(className);
+		return classObjectsMap.get(className);
+	}
 	public MethodObjects getMethodObjects(SootMethod method){
 		String className=method.getDeclaringClass().getName();
-		read(className);
-		if(classObjectsMap.containsKey(className)){
-			ClassObjects classObjects=classObjectsMap.get(className);
+		ClassObjects classObjects=getClassObjects(className);
+		if(classObjects!=null){
 			return classObjects.getMethodObjects(method.getSignature());
 		}
 		return null;
@@ -93,11 +85,8 @@ public class ClassesObjects {
 		return getMethodObjects(className,signature,false);
 	}
 	public MethodObjects getMethodObjects(String className,String methodSig,boolean isSub){
-		read(className);
-		if(!classObjectsMap.containsKey(className)){
-			return null;
-		}
-		ClassObjects classObjects=classObjectsMap.get(className);
+		ClassObjects classObjects=getClassObjects(className);
+		if(classObjects==null) return null;
 		if(!isSub){
 			return classObjects.getMethodObjects(methodSig);
 		}else{
