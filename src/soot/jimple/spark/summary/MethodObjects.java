@@ -1,8 +1,10 @@
 package soot.jimple.spark.summary;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -77,7 +79,7 @@ public class MethodObjects {
 		setBaseObjectByType(baseObject);
 		return baseObject;
 	}
-	public boolean addDestToSource(FakeNode node,PointsToSetInternal p2set,PAG pag){
+	public boolean addDestToSource(FakeNode node,PointsToSetInternal p2set,PAG pag,Set<AllocNode> path){
 		boolean[] isAdded=new boolean[1];
 		p2set.forall( new P2SetVisitor() {
         public final void visit( Node n ) { 
@@ -96,18 +98,19 @@ public class MethodObjects {
         		srcSet.add(src);
         		isAdded[0]=true;
         	}
-        	if(handleFields((AllocNode)n,node,pag)){
-        		isAdded[0]=true;
+        	if(!path.contains(n)&&handleFields((AllocNode)n,node,pag,path)){
+        		isAdded[0]=true;        		
         	}
         }} );
 		return isAdded[0];
 	}
-	private boolean handleFields(AllocNode src,FakeNode dest,PAG pag){
+	private boolean handleFields(AllocNode src,FakeNode dest,PAG pag,Set<AllocNode> path){
+		path.add(src);
 		boolean isAdded=false;
 		for(AllocDotField allocDotField:src.getAllFieldRefs()){
 			SparkField field=allocDotField.getField();
 			if(field.getType() instanceof RefType&&
-					addDestToSource(dest.getFakeBaseNode(field),allocDotField.getP2Set(),pag)){
+					addDestToSource(dest.getFakeBaseNode(field),allocDotField.getP2Set(),pag,new HashSet<AllocNode>(path))){
 				isAdded=true;
 			}
 		}
@@ -115,7 +118,7 @@ public class MethodObjects {
 	}
 	
 	public boolean handleFields(FakeNode node,PAG pag){
-		return handleFields(node,node,pag);
+		return handleFields(node,node,pag,new HashSet<AllocNode>());
 	}
 	private FieldObject getFieldObject(Node n,PAG pag){
 		FieldObject object;

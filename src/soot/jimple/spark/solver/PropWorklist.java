@@ -19,6 +19,7 @@
 
 package soot.jimple.spark.solver;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -157,7 +158,7 @@ public final class PropWorklist extends Propagator {
 				p2Set.clear();
 				p2Set.getNewSet().add(node);
 			}else{
-				Options.v().method_objects().addDestToSource(node, p2Set, pag);
+				Options.v().method_objects().addDestToSource(node, p2Set, pag,new HashSet<AllocNode>());
 				p2Set.clear();
 			}
 		}

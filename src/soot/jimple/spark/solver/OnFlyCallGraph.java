@@ -19,6 +19,7 @@
 
 package soot.jimple.spark.solver;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,7 @@ import soot.SootClass;
 import soot.SootMethod;
 import soot.Value;
 import soot.jimple.AssignStmt;
+import soot.jimple.Stmt;
 import soot.jimple.spark.pag.AllocNode;
 import soot.jimple.spark.pag.FakeNode;
 import soot.jimple.spark.pag.FakeVarNode;
@@ -197,9 +199,10 @@ public class OnFlyCallGraph {
     	GapDefinition gapDefinition;
     	if(!gaps.containsKey(site)){
     		SootMethod method=site.iie().getMethod();
-        	if(!method.isNative()&&(site.kind()==Kind.VIRTUAL||site.kind()==Kind.SPECIAL)){
+        	if(!method.isNative()){
         		gapDefinition=methodObjects.createGap(method.getSignature());
         		gaps.put(site, gapDefinition);
+        		stmtToGaps.put(site.stmt(), gapDefinition);
         	}else{
         		if(!site.iie().getMethod().isNative()){
         			System.out.println(site.kind());
@@ -239,7 +242,7 @@ public class OnFlyCallGraph {
     private void handleGapCall(VirtualCallSite site,VarNode node,Pair pair,Value value){
     	PointsToSetInternal set=node.getP2Set();
     	FakeNode fakeNode=pag.makeFakeNode(pag, pair,value.getType(), site.container());
-    	if(Options.v().method_objects().addDestToSource(fakeNode, set, pag)){
+    	if(Options.v().method_objects().addDestToSource(fakeNode, set, pag,new HashSet<AllocNode>())){
     		set.clear();
     		set.add(fakeNode);
         	pag.needToAdd.add(node);
@@ -255,7 +258,10 @@ public class OnFlyCallGraph {
 
     private PAG pag;
     private Map<VirtualCallSite,GapDefinition> gaps=new HashMap<VirtualCallSite,GapDefinition>();
-    
+    private Map<Stmt,GapDefinition> stmtToGaps=new HashMap<Stmt,GapDefinition>();
+    public Map<Stmt,GapDefinition> getStmtToGaps(){
+    	return stmtToGaps;
+    }
 }
 
 

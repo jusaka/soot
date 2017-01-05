@@ -2,6 +2,7 @@ package soot.jimple.spark.pag;
 
 import soot.SootMethod;
 import soot.Type;
+import soot.toolkits.scalar.Pair;
 
 public class FakeBaseNode extends FakeNode{
 	
@@ -15,6 +16,9 @@ public class FakeBaseNode extends FakeNode{
 	}
 	public SparkField getField(){
 		return field;
+	}
+	public String toString(){
+		return "FakeBaseNode "+getNumber()+" "+field+" on "+base;
 	}
 	protected FakeNode base;
     protected SparkField field;
