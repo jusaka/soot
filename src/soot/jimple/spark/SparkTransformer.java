@@ -82,6 +82,7 @@ public class SparkTransformer extends SceneTransformer
         if( opts.force_gc() ) doGC();
         Date startBuild = new Date();
         final PAG pag = b.setup( opts );
+        Scene.v().setPointsToAnalysis(pag);
         b.build();
         Date endBuild = new Date();
         reportTime( "Pointer Assignment Graph", startBuild, endBuild );

@@ -31,7 +31,7 @@ public class FakeEdge {
 			this.srcSig=src.getSignature();
 		}
 		if (tgtMethodObjects == null) {
-			fakeTgt = true;
+			fakeTgt = false;
 		}
 		if(tgt!=null){
 			this.tgtSig=tgt.getSignature();
@@ -118,5 +118,7 @@ public class FakeEdge {
 		hashCode = hashCode * 31 + tgtSig.hashCode();
 		return hashCode;
 	}
-
+	FakeEdge nextByGap() {
+        return nextByGap;
+    }
 }

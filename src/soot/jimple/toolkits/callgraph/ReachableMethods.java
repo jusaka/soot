@@ -31,6 +31,7 @@ public class ReachableMethods
 { 
     private CallGraph cg;
     private Iterator<Edge> edgeSource;
+    private Iterator<FakeEdge> fakeEdgeSource;
     private final ChunkedQueue<MethodOrMethodContext> reachables = new ChunkedQueue<MethodOrMethodContext>();
     private final Set<MethodOrMethodContext> set = new HashSet<MethodOrMethodContext>();
     private QueueReader<MethodOrMethodContext> unprocessedMethods;
@@ -46,6 +47,7 @@ public class ReachableMethods
         addMethods( entryPoints );
         unprocessedMethods = reachables.reader();
         this.edgeSource = graph.listener();
+        this.fakeEdgeSource=graph.fakeListener();
         if( filter != null ) this.edgeSource = filter.wrap( this.edgeSource );
     }
     public ReachableMethods( CallGraph graph, Collection<MethodOrMethodContext> entryPoints ) {
@@ -67,12 +69,18 @@ public class ReachableMethods
             Edge e = edgeSource.next();
             if( set.contains( e.getSrc() ) ) addMethod( e.getTgt() );
         }
+        while(fakeEdgeSource.hasNext()){
+        	FakeEdge fakeEdge = fakeEdgeSource.next();
+        	if(fakeEdge.isValid()&&!fakeEdge.tgtFake()) addMethod(fakeEdge.getTgt());
+        }
         while(unprocessedMethods.hasNext()) {
             MethodOrMethodContext m = unprocessedMethods.next();
             Iterator<Edge> targets = cg.edgesOutOf( m );
             if( filter != null ) targets = filter.wrap( targets );
             addMethods( new Targets( targets ) );
         }
+        
+        
     }
     /** Returns a QueueReader object containing all methods found reachable
      * so far, and which will be informed of any new methods that are later

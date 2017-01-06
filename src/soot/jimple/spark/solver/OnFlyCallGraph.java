@@ -132,7 +132,7 @@ public class OnFlyCallGraph {
     public OnFlyCallGraphBuilder ofcgb() { return ofcgb; }
 
     public void updateNode(FakeVarNode fvn){
-    	PointsToSetInternal p2set = fvn.getP2Set().getNewSet();
+    	PointsToSetInternal p2set = fvn.getP2Set();
 		FieldObject fieldObject = (FieldObject) fvn.getVariable();
 		BaseObject baseObject = fieldObject.getBaseObject();
 		p2set.forall(new P2SetVisitor() {

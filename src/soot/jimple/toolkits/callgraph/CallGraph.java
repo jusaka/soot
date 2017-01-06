@@ -51,7 +51,7 @@ public class CallGraph implements Iterable<Edge>
     protected Map<GapDefinition,FakeEdge> gapToEdge=new HashMap<GapDefinition,FakeEdge>();
     protected ChunkedQueue<FakeEdge> fakeStream = new ChunkedQueue<FakeEdge>();
     protected QueueReader<FakeEdge> fakeReader = fakeStream.reader();
-    protected FakeEdge dummyFake = new FakeEdge( null, null, null, null,null,null,null);
+    protected FakeEdge fakeDummy = new FakeEdge( null, null, null, null,null,null,null);
     
     /** Used to add an edge to the call graph. Returns true iff the edge was
      * not already present. */
@@ -84,17 +84,46 @@ public class CallGraph implements Iterable<Edge>
     }
     
     public boolean addFakeEdge(FakeEdge fakeEdge){
-    	if(fakeEdge.isValid()) return false;
+    	if(!fakeEdge.isValid()) return false;
     	if( !fakeEdges.add( fakeEdge ) ) return false;
     	fakeStream.add(fakeEdge);
         FakeEdge position = null;
         position = gapToEdge.get( fakeEdge.srcGap());
         if( position == null ) {
         	gapToEdge.put( fakeEdge.srcGap(), fakeEdge );
-            position = dummyFake;
+            position = fakeDummy;
         }
         fakeEdge.insertAfterByGap( position );
         return true;
+    }
+    
+    
+    
+    /** Returns an iterator over all edges that have u as their source unit. */
+    public Iterator<FakeEdge> edgesOutOf( GapDefinition gap ) {
+        return new TargetsOfGapIterator( gap );
+    }
+    class TargetsOfGapIterator implements Iterator<FakeEdge> {
+        private FakeEdge position = null;
+        private GapDefinition gap;
+        TargetsOfGapIterator( GapDefinition gap ) {
+            this.gap = gap;
+            if( gap == null ) throw new RuntimeException();
+            position = gapToEdge.get(gap);
+            if( position == null ) position = fakeDummy;
+        }
+        public boolean hasNext() {
+            if( position==null||!position.isValid()||position.srcGap().equals( gap) ) return false;
+            return true;
+        }
+        public FakeEdge next() {
+            FakeEdge ret = position;
+            position = position.nextByGap();
+            return ret;
+        }
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
     
     /**

@@ -27,7 +27,9 @@ import heros.solver.IDESolver;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import soot.Body;
 import soot.MethodOrMethodContext;
@@ -35,9 +37,11 @@ import soot.PatchingChain;
 import soot.Scene;
 import soot.SootMethod;
 import soot.Unit;
+import soot.jimple.spark.summary.GapDefinition;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.EdgePredicate;
+import soot.jimple.toolkits.callgraph.FakeEdge;
 import soot.jimple.toolkits.callgraph.Filter;
 
 import com.google.common.cache.CacheLoader;
@@ -149,6 +153,7 @@ public class JimpleBasedInterproceduralCFG extends AbstractJimpleBasedICFG {
 		return unitToCallees.getUnchecked(u);
 	}
 
+	
 	@Override
 	public Collection<Unit> getCallersOf(SootMethod m) {
 		return methodToCallers.getUnchecked(m);
