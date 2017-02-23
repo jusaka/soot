@@ -56,7 +56,7 @@ public class PAGReader {
 				else if (reader.getLocalName().equals(PAGConstants.TREE_METHOD) && reader.isStartElement() ){
 					if(state == State.methods){
 						currentMethod = getAttributeByName(reader,PAGConstants.ATTRIBUTE_METHOD_SIG);
-						MethodObjects methodObjects=new MethodObjects(currentMethod);
+						MethodObjects methodObjects=new MethodObjects(className,currentMethod);
 						classObjects.merge(methodObjects);
 						state = State.method;
 					}			
@@ -145,7 +145,7 @@ public class PAGReader {
 				}
 				else if(reader.getLocalName().equals(PAGConstants.TREE_GAP) && reader.isStartElement()){
 					if(state == State.gaps) {
-						GapDefinition definition=getGapDefinition(reader);
+						GapDefinition definition=getGapDefinition(className,reader);
 						classObjects.addGap(definition);
 						state = State.gap;
 					}
@@ -176,7 +176,7 @@ public class PAGReader {
 		BaseObjectType baseObjectType=BaseObjectType.
 				getTypeByValue(getAttributeByName(reader,PAGConstants.ATTRIBUTE_TYPE));
 		String type=getAttributeByName(reader,PAGConstants.ATTRIBUTE_BASETYPE);
-		BaseObject baseObject=new BaseObject(methodObjects,num,type,baseObjectType);
+		BaseObject baseObject=new BaseObject(methodObjects.getMethodSig(),num,type,baseObjectType);
 		if(BaseObjectType.isGap(baseObjectType)){
 			int gap=Integer.parseInt(getAttributeByName(reader,PAGConstants.ATTRIBUTE_GAP));
 			baseObject.setGapId(gap);
@@ -205,18 +205,18 @@ public class PAGReader {
 		FieldObject fieldObject;
 		if(field.startsWith("new ")){
 			String baseType=field.substring(4);
-			fieldObject=new FieldObject(baseType,fieldType);
+			fieldObject=new FieldObject(methodObjects.getMethodSig(),baseType,fieldType);
 		}else{
 			int baseId;
 			if(!field.contains(".")){
 				baseId=Integer.parseInt(field);
 				BaseObject baseObject=methodObjects.getBaseObject(baseId);
-				fieldObject=new FieldObject(baseObject,fieldType);
+				fieldObject=new FieldObject(methodObjects.getMethodSig(),baseObject,fieldType);
 			}else{
 				baseId=Integer.parseInt(field.substring(0, field.indexOf(".")));
 				String accessPath=field.substring(field.indexOf("."));
 				BaseObject baseObject=methodObjects.getBaseObject(baseId);
-				fieldObject=new FieldObject(baseObject,accessPath,fieldType);
+				fieldObject=new FieldObject(methodObjects.getMethodSig(),baseObject,accessPath,fieldType);
 			}
 		}
 		return fieldObject;
@@ -230,10 +230,10 @@ public class PAGReader {
 		return "";
 	}
 
-	private GapDefinition getGapDefinition(XMLStreamReader reader) {
+	private GapDefinition getGapDefinition(String className,XMLStreamReader reader) {
 		int id = Integer.parseInt(getAttributeByName(reader,PAGConstants.ATTRIBUTE_ID));
 		String signature=getAttributeByName(reader,PAGConstants.ATTRIBUTE_METHOD_SIG);
-		GapDefinition definition=new GapDefinition(id,signature);
+		GapDefinition definition=new GapDefinition(id,signature,className);
 		return definition;
 	}
 	

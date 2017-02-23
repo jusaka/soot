@@ -387,7 +387,7 @@ public final class OnFlyCallGraphBuilder
     
     public void addType( BaseObject baseObject, FakeVarNode vn, Type type, Context context ) {
     	ClassesObjects classesObjects = Options.v().classes_objects();
-    	MethodObjects srcMethodObjects=baseObject.getMethodObjects();
+    	MethodObjects srcMethodObjects=classesObjects.getMethodObjects(baseObject.getMethodSig());
     	int gapId=baseObject.getGapId();
     	GapDefinition gap=srcMethodObjects.getGap(gapId);
 		String srcSig=vn.getMethodSig();

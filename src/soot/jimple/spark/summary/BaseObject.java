@@ -8,9 +8,9 @@ public class BaseObject {
 	int id;
 	int index=-1;
 	int gapId=-1;
-	MethodObjects methodObjects;
-	public BaseObject(MethodObjects methodObjects,int id,String type,BaseObjectType baseObjectType){
-		this.methodObjects=methodObjects;
+	String methodSig;
+	public BaseObject(String methodSig,int id,String type,BaseObjectType baseObjectType){
+		this.methodSig=methodSig;
 		this.baseObjectType=baseObjectType;
 		this.type=type;
 		this.id=id;
@@ -39,12 +39,18 @@ public class BaseObject {
 	public void setGapId(int gapId){
 		this.gapId=gapId;
 	}
+	public String getMethodSig(){
+		return methodSig;
+	}
 	
 	@Override
 	public boolean equals(Object other){
 		if(other==null||this==null) return false;
 		if(other==this) return true;
 		BaseObject otherObject=(BaseObject)other;
+		if(!this.methodSig.equals(otherObject.methodSig)){
+			return false;
+		}
 		if(this.id!=otherObject.id){
 			return false;
 		}
@@ -65,6 +71,7 @@ public class BaseObject {
 	@Override
 	public int hashCode(){
 		int hashCode=((Integer)id).hashCode();
+		hashCode=hashCode*31+methodSig.hashCode();
 		hashCode=hashCode*31+baseObjectType.hashCode();
 		hashCode=hashCode*31+type.hashCode();
 		if(index!=-1){
@@ -84,12 +91,9 @@ public class BaseObject {
 		if(index!=-1){
 			str+=" "+index; 
 		}
-		return str;
+		return str+" in "+methodSig;
 	}
 	public boolean isGap(){
 		return BaseObjectType.isGap(this.baseObjectType);
-	}
-	public MethodObjects getMethodObjects(){
-		return this.methodObjects;
 	}
 }

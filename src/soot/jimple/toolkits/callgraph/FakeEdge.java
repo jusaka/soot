@@ -121,4 +121,9 @@ public class FakeEdge {
 	FakeEdge nextByGap() {
         return nextByGap;
     }
+	
+	@Override
+	public String toString(){
+		return "FAKE edge: "+gap+" in "+srcSig+" ==> "+tgtSig;
+	}
 }

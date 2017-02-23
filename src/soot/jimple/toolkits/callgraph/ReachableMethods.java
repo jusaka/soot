@@ -103,6 +103,9 @@ public class ReachableMethods
     public int size() {
     	return set.size();
     }
+    public Set<MethodOrMethodContext> getMethods(){
+    	return set;
+    }
 }
 
 

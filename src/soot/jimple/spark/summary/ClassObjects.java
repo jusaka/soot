@@ -52,7 +52,7 @@ public class ClassObjects {
 		for(String methodSig:methodObjectsMap.keySet()){
 			String methodSubSig=Scene.v().signatureToSubsignature(methodSig);
 			if(methodSubSig.equals(subSig)){
-				return methodObjectsMap.get(methodSubSig);
+				return methodObjectsMap.get(methodSig);
 			}
 		}
 		return null;	

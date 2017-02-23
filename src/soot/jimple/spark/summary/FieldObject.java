@@ -1,25 +1,28 @@
 package soot.jimple.spark.summary;
 
 public class FieldObject{
+	String methodSig;
 	BaseObject baseObject;
 	String baseType;
 	String accessPath;
 	String type;
 	boolean isNew=false;
 	boolean hasField=false;
-	public FieldObject(BaseObject baseObject,String type){
+	public FieldObject(String methodSig,BaseObject baseObject,String type){
+		this.methodSig=methodSig;
 		this.baseObject=baseObject;
 		this.type=type;
 	}
-	public FieldObject(BaseObject baseObject,String accessPath,String type){
-		this(baseObject,type);
+	public FieldObject(String methodSig,BaseObject baseObject,String accessPath,String type){
+		this(methodSig,baseObject,type);
 		if(accessPath!=null&&!accessPath.isEmpty()){
 			this.accessPath=accessPath;
 			hasField=true;
 		}
 	}
 	
-	public FieldObject(String baseType,String type){
+	public FieldObject(String methodSig,String baseType,String type){
+		this.methodSig=methodSig;
 		this.baseType=baseType;
 		this.type=type;
 		isNew=true;
@@ -31,7 +34,9 @@ public class FieldObject{
 		FieldObject otherObject=(FieldObject)other;
 		
 		if(!this.validate()||!otherObject.validate()) return false;
-		
+		if(!this.methodSig.equals(otherObject.methodSig)){
+			return false;
+		}
 		if(!this.type.equals(otherObject.type)){
 			return false;
 		}
@@ -71,6 +76,7 @@ public class FieldObject{
 	@Override
 	public int hashCode(){
 		int hashCode=type.hashCode();
+		hashCode=hashCode*31+methodSig.hashCode();
 		if(isNew){
 			hashCode=hashCode*31+baseType.hashCode();
 		}else{
@@ -94,7 +100,7 @@ public class FieldObject{
 			str+=accessPath;
 		}
 		str+=" "+type;
-		return str;
+		return str+" in "+methodSig;
 	}
 	public String getFieldString(){
 		String str="";
@@ -128,5 +134,8 @@ public class FieldObject{
 	}
 	public BaseObject getBaseObject(){
 		return baseObject;
+	}
+	public String getMethodSig(){
+		return methodSig;
 	}
 }

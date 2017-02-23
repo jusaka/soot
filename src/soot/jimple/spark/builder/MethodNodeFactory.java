@@ -212,7 +212,8 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
 	}
 
 	final public Node caseBaseObject(BaseObject baseObject) {
-		FieldObject fieldObject = new FieldObject(baseObject, baseObject.getTypeString());
+		
+		FieldObject fieldObject = new FieldObject(this.method==null?methodSig:method.getSignature(),baseObject, baseObject.getTypeString());
 		if(fieldObjectToNode.containsKey(fieldObject)) return fieldObjectToNode.get(fieldObject);
 		Type fieldType = ObjectUtils.getTypeFromString(fieldObject.getFieldType());
 		FakeVarNode fakeVarNode = pag.makeFakeVarNode(fieldObject, fieldType, method,methodSig);
@@ -248,7 +249,7 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
 			String accessPath = fieldObject.getAccessPath();
 			List<String> splitedAP = ObjectUtils.splitAccessPath(accessPath);
 			BaseObject baseObject = fieldObject.getBaseObject();
-			FieldObject src = new FieldObject(baseObject, baseObject.getTypeString());
+			FieldObject src = new FieldObject(this.method==null?methodSig:method.getSignature(),baseObject, baseObject.getTypeString());
 			Type srcType = ObjectUtils.getTypeFromString(src.getFieldType());
 			FakeVarNode srcNode = pag.makeFakeVarNode(src, srcType, method, methodSig);
 			
@@ -264,7 +265,7 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
 				sb.append(fieldSig);
 				sb.append("]");
 				
-				FieldObject dest=new FieldObject(baseObject,sb.toString(),field.getType().toString());
+				FieldObject dest=new FieldObject(this.method==null?methodSig:method.getSignature(),baseObject,sb.toString(),field.getType().toString());
 				destNode= pag.makeFakeVarNode(dest, field.getType(), method, methodSig);
 				mpag.addInternalEdge(fieldRefNode, destNode);
 				srcNode=destNode;

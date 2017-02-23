@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.Stack;
 
 import soot.RefType;
+import soot.Scene;
 import soot.SootMethod;
 import soot.Type;
 import soot.jimple.spark.pag.AllocDotField;
@@ -36,23 +37,26 @@ public class MethodObjects {
 	private String methodSig;
 	private int lastBaseObjectId;
 	private int lastGapId;
-	public MethodObjects(){
+	private String className;
+	public MethodObjects(String className){
+		this.className=className;
 		destToSourceMap=new HashMap<FieldObject,Set<FieldObject>>();
 		baseObjects=new HashMap<Integer,BaseObject>();
 		gaps=new HashMap<Integer,GapDefinition>();
 		this.lastBaseObjectId=0;
 	}
-	public MethodObjects(String methodSig){
-		this();
+	public MethodObjects(String className,String methodSig){
+		this(className);
 		this.methodSig=methodSig;
+		className=Scene.v().signatureToClass(methodSig);
 	}
-	public MethodObjects(String methodSig,int lastGapId){
-		this(methodSig);
+	public MethodObjects(String className,String methodSig,int lastGapId){
+		this(className,methodSig);
 		this.lastGapId=lastGapId;
 	}
 	public GapDefinition createGap(String signature) {
 		int gapID=lastGapId++;
-		GapDefinition gd = new GapDefinition(gapID, signature);
+		GapDefinition gd = new GapDefinition(gapID, signature,className);
 		this.gaps.put(gapID,gd);
 		return gd;
 	}
@@ -61,7 +65,7 @@ public class MethodObjects {
 		Type type=fakeNode.getType();
 		Pair pair=(Pair)fakeNode.getNewExpr();
 		BaseObjectType baseObjectType=(BaseObjectType)pair.getO1();
-		BaseObject baseObject=new BaseObject(this,baseObjectID,type.toString(),baseObjectType);
+		BaseObject baseObject=new BaseObject(methodSig,baseObjectID,type.toString(),baseObjectType);
 		if(baseObjectType==BaseObjectType.Parameter){
 			baseObject.setIndex((Integer)pair.getO2());
 			
@@ -139,13 +143,13 @@ public class MethodObjects {
 			}
 			if(baseObject!=null){
 				String accessPath=sb.length()==0?null:sb.toString();
-				object=new FieldObject(baseObject,accessPath,n.getType().toString());
+				object=new FieldObject(methodSig,baseObject,accessPath,n.getType().toString());
 			}else{
 				throw new RuntimeException("Something maybe wrong");
 			}
 		}else{
     		AllocNode node=(AllocNode) n;
-    		object=new FieldObject(node.getType().toString(),n.getType().toString());
+    		object=new FieldObject(methodSig,node.getType().toString(),n.getType().toString());
     	}
 		return object;
 	}

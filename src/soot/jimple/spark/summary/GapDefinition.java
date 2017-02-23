@@ -13,15 +13,17 @@ public class GapDefinition {
 	
 	private final int id;
 	private String signature;
+	private String className;
 	
 	/**
 	 * Creates a new instance of the {@link GapDefinition} class
 	 * @param id The unique ID of this gap definition
 	 * @param signature The signature of the callee
 	 */
-	public GapDefinition(int id, String signature) {
+	public GapDefinition(int id, String signature,String className) {
 		this.id = id;
 		this.signature = signature;
+		this.className = className;
 	}
 	
 	/**
@@ -58,17 +60,9 @@ public class GapDefinition {
 	
 	@Override
 	public GapDefinition clone() {
-		return new GapDefinition(id, signature);
+		return new GapDefinition(id, signature,className);
 	}
 	
-	/**
-	 * Generates a clone of this gap with a new ID
-	 * @param newID The new gap ID
-	 * @return The new gap with the changed ID
-	 */
-	public GapDefinition renumber(int newID) {
-		return new GapDefinition(newID, signature);
-	}
 	
 	@Override
 	public int hashCode() {
@@ -77,6 +71,7 @@ public class GapDefinition {
 		result = prime * result + id;
 		result = prime * result
 				+ ((signature == null) ? 0 : signature.hashCode());
+		result+= prime *result+className.hashCode();
 		return result;
 	}
 	
@@ -96,12 +91,13 @@ public class GapDefinition {
 				return false;
 		} else if (!signature.equals(other.signature))
 			return false;
+		if(this.className!=other.className) return false;
 		return true;
 	}
 	
 	@Override
 	public String toString() {
-		return "Gap " + id + " in " + signature;
+		return "Gap " + id + " in " + signature+" of "+className;
 	}
 	
 }

@@ -113,7 +113,9 @@ public class CallGraph implements Iterable<Edge>
             if( position == null ) position = fakeDummy;
         }
         public boolean hasNext() {
-            if( position==null||!position.isValid()||position.srcGap().equals( gap) ) return false;
+            if( position==null||!position.isValid()||!position.srcGap().equals( gap) ){
+            	return false;
+            }
             return true;
         }
         public FakeEdge next() {
