@@ -469,10 +469,10 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
 	}
 
 	final public void caseSourceNode(VarNode dest, Pair pair, Type type) {
-		MethodObjects methodObjects = Options.v().method_objects();
-		if (methodObjects != null && method.getSignature().equals(methodObjects.getMethodSig())
+		MethodObjects globalMethodObjects = Options.v().method_objects();
+		if (globalMethodObjects != null && method.getSignature().equals(globalMethodObjects.getMethodSig())
 				&& type instanceof RefType && !pag.varToFakeNode.containsKey(dest)) {
-			methodObjects.setMethod(method);
+			globalMethodObjects.setMethod(method);
 			FakeNode src = pag.makeFakeNode(pag, pair, type, method);
 			if (!pag.varToFakeNode.containsKey(dest)) {
 				pag.varToFakeNode.put(dest, src);

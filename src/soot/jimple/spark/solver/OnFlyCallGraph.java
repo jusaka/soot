@@ -222,10 +222,10 @@ public class OnFlyCallGraph {
     			Pair<GapDefinition,Integer> gapIndex=new Pair<GapDefinition,Integer>(gapDefinition,i);
     			Pair<BaseObjectType,Pair<GapDefinition,Integer>> argPair
         		=new Pair<BaseObjectType,Pair<GapDefinition,Integer>>(BaseObjectType.GapParameter,gapIndex);
-    			if(arg instanceof Local){
+    			//if(arg instanceof Local){
     				VarNode argNode=pag.makeLocalVarNode( (Local) arg,  arg.getType(), site.container() );
         			handleGapCall(site,argNode,argPair,arg);
-    			}
+    			//}
     		}
     	}
     	if(site.stmt() instanceof AssignStmt){

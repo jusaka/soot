@@ -21,6 +21,7 @@ package soot.jimple.spark.sets;
 import soot.Scene;
 import soot.Type;
 import soot.jimple.spark.internal.TypeManager;
+import soot.jimple.spark.pag.FakeNode;
 import soot.jimple.spark.pag.Node;
 import soot.jimple.spark.pag.PAG;
 import soot.util.BitSetIterator;
@@ -101,7 +102,7 @@ public final class HybridPointsToSet extends PointsToSetInternal {
     }
     /** Adds n to this set, returns true if n was not already in this set. */
     public final boolean add( Node n ) {
-        if( pag.getTypeManager().castNeverFails( n.getType(), type ) ) {
+        if( n instanceof FakeNode||pag.getTypeManager().castNeverFails( n.getType(), type ) ) {
             return fastAdd( n );
         }
         return false;
